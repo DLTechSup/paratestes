@@ -14,10 +14,10 @@ button { font: inherit; cursor: pointer; border: 0; background: none; color: inh
 /* ================= NOTA ================= */
 body[data-view='note'] { background: #fff; }
 .note { height: 100%; display: flex; flex-direction: column; background: var(--bg); color: var(--text); border: 1px solid rgba(0,0,0,.18); position: relative; }
-.notebar { display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px; background: var(--bar); -webkit-app-region: drag; flex-shrink: 0; }
-.notebar > *, .notebar .popwrap { -webkit-app-region: no-drag; }
-.notebar .grow { -webkit-app-region: drag; }
-.nb { width: 28px; height: 26px; display: grid; place-items: center; border-radius: 6px; color: var(--text); opacity: .75; -webkit-app-region: no-drag; }
+.notebar { display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px; background: var(--bar); flex-shrink: 0; }
+.notebar > *, .notebar .popwrap { }
+.notebar .grow { }
+.nb { width: 28px; height: 26px; display: grid; place-items: center; border-radius: 6px; color: var(--text); opacity: .75; }
 .nb:hover, .nb.on { opacity: 1; background: rgba(0,0,0,.12); }
 .note[data-dark='true'] .nb:hover, .note[data-dark='true'] .nb.on { background: rgba(255,255,255,.14); }
 .nb.close:hover { background: #e5484d; color: #fff; }
@@ -153,8 +153,8 @@ code { background: var(--m-hover); padding: 1px 6px; border-radius: 5px; font-si
 .content::-webkit-scrollbar-thumb { background: var(--m-line); border-radius: 5px; }
 
 /* nome da nota */
-.grip { width: 16px; height: 26px; display: grid; place-items: center; opacity: .45; -webkit-app-region: drag; cursor: move; }
-.notetitle { flex: 1; min-width: 40px; height: 24px; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0 6px; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; -webkit-app-region: no-drag; }
+.grip { width: 16px; height: 26px; display: grid; place-items: center; opacity: .45; cursor: move; }
+.notetitle { flex: 1; min-width: 40px; height: 24px; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0 6px; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; }
 .notetitle::placeholder { color: var(--text); opacity: .4; font-weight: 400; }
 .notetitle:hover, .notetitle:focus { background: rgba(255,255,255,.35); border-color: rgba(0,0,0,.15); outline: 0; }
 .note[data-dark='true'] .notetitle:hover, .note[data-dark='true'] .notetitle:focus { background: rgba(255,255,255,.1); }
@@ -164,3 +164,9 @@ code { background: var(--m-hover); padding: 1px 6px; border-radius: 5px; font-si
 .cardtitle { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 2px 5px; font: inherit; font-size: 13px; font-weight: 700; text-transform: none; letter-spacing: 0; }
 .cardtitle::placeholder { color: inherit; opacity: .45; font-weight: 400; }
 .cardtitle:hover, .cardtitle:focus { background: rgba(255,255,255,.4); border-color: rgba(0,0,0,.15); outline: 0; }
+
+.notebar { user-select: none; touch-action: none; }
+.note[data-collapsed='true'] .notebar { cursor: pointer; height: 100%; }
+.note[data-collapsed='true'] { border-radius: 8px; overflow: hidden; }
+.collapsedtitle { flex: 1; min-width: 0; padding: 0 8px; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notebody[hidden] { display: none; }

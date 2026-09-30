@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('api', {
   setSettings: (p) => invoke('settings:set', p),
   getInfo: () => invoke('app:info'),
   // janela
+  dragStart: () => ipcRenderer.send('win:dragStart'),
+  dragMove: () => ipcRenderer.send('win:dragMove'),
+  dragEnd: () => ipcRenderer.send('win:dragEnd'),
   winControl: (action) => invoke('win:control', action),
   openManager: () => invoke('app:openManager'),
   quit: () => invoke('app:quit'),

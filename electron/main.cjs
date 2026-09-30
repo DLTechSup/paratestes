@@ -31,10 +31,11 @@ function loadView(win, hash) {
 
 // ---------- utilidades de notas ----------
 const summary = (n) => ({
-  id: n.id, title: n.title || '', text: n.text || '', color: n.color, visible: !!n.visible, pinned: !!n.pinned,
+  id: n.id, collapsed: !!n.collapsed, title: n.title || '', text: n.text || '', color: n.color, visible: !!n.visible, pinned: !!n.pinned,
   opacity: n.opacity ?? 1, createdAt: n.createdAt, updatedAt: n.updatedAt,
   deleted: !!n.deleted, w: n.w, h: n.h,
 });
+const COLLAPSED_H = 36;
 const findNote = (id) => store.notes.find((n) => n.id === id);
 
 function broadcast() {
@@ -74,8 +75,8 @@ function openNoteWindow(id, { focus = false } = {}) {
   if (!onScreen(n)) { const wa = screen.getPrimaryDisplay().workArea; n.x = wa.x + 80; n.y = wa.y + 80; }
   const c = palette[n.color] || palette.yellow;
   const win = new BrowserWindow({
-    x: Math.round(n.x), y: Math.round(n.y), width: Math.round(n.w), height: Math.round(n.h),
-    minWidth: 180, minHeight: 140, frame: false, show: false, skipTaskbar: true,
+    x: Math.round(n.x), y: Math.round(n.y), width: Math.round(n.w), height: n.collapsed ? COLLAPSED_H : Math.round(n.h),
+    minWidth: n.collapsed ? 140 : 180, minHeight: n.collapsed ? COLLAPSED_H : 140, maxHeight: n.collapsed ? COLLAPSED_H : undefined, frame: false, show: false, skipTaskbar: true,
     backgroundColor: c.bg, alwaysOnTop: !!n.pinned, opacity: n.opacity ?? 1, icon: ICON,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, spellcheck: true },
   });
@@ -90,7 +91,8 @@ function openNoteWindow(id, { focus = false } = {}) {
     t = setTimeout(() => {
       if (win.isDestroyed()) return;
       const b = win.getBounds();
-      Object.assign(n, { x: b.x, y: b.y, w: b.width, h: b.height });
+      Object.assign(n, { x: b.x, y: b.y, w: b.width });
+      if (!n.collapsed) n.h = b.height;
       store.saveSoon();
     }, 250);
   };
@@ -256,7 +258,7 @@ function setupIpc() {
   ipcMain.handle('notes:update', (_e, id, patch) => {
     const n = findNote(id);
     if (!n) return null;
-    const allowed = ['html', 'text', 'title', 'color', 'opacity', 'pinned'];
+    const allowed = ['html', 'text', 'title', 'color', 'opacity', 'pinned', 'collapsed'];
     for (const k of allowed) if (k in patch) n[k] = patch[k];
     if ('html' in patch) { n.updatedAt = now(); if (!('text' in patch)) n.text = htmlToText(n.html); }
     store.saveSoon();
@@ -265,6 +267,17 @@ function setupIpc() {
       if ('pinned' in patch) w.setAlwaysOnTop(!!n.pinned);
       if ('opacity' in patch) w.setOpacity(Math.min(1, Math.max(0.3, n.opacity)));
       if ('color' in patch) w.setBackgroundColor((palette[n.color] || palette.yellow).bg);
+    }
+    if ('collapsed' in patch && w && !w.isDestroyed()) {
+      const b = w.getBounds();
+      if (n.collapsed) {
+        n.h = b.height;
+        w.setMinimumSize(140, COLLAPSED_H); w.setMaximumSize(10000, COLLAPSED_H);
+        w.setBounds({ x: b.x, y: b.y, width: b.width, height: COLLAPSED_H });
+      } else {
+        w.setMaximumSize(0, 0); w.setMinimumSize(180, 140);
+        w.setBounds({ x: b.x, y: b.y, width: b.width, height: Math.max(140, Math.round(n.h || 340)) });
+      }
     }
     if ('title' in patch && w && !w.isDestroyed()) w.setTitle(n.title || 'Nota');
     broadcast();
@@ -300,6 +313,19 @@ function setupIpc() {
     const r = await dialog.showSaveDialog(win, { defaultPath: `${(n.text || 'nota').split('\n')[0].slice(0, 30).replace(/[\\/:*?"<>|]/g, '')}.txt`, filters: [{ name: 'Texto', extensions: ['txt'] }] });
     if (!r.canceled) fs.writeFileSync(r.filePath, n.text || '', 'utf8');
   });
+
+  // arrastar a nota (implementado à mão para permitir clique/duplo clique na barra)
+  let drag = null;
+  ipcMain.on('win:dragStart', (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win) drag = { win, b: win.getBounds(), c: screen.getCursorScreenPoint() };
+  });
+  ipcMain.on('win:dragMove', () => {
+    if (!drag || drag.win.isDestroyed()) return;
+    const c = screen.getCursorScreenPoint();
+    drag.win.setBounds({ x: drag.b.x + c.x - drag.c.x, y: drag.b.y + c.y - drag.c.y, width: drag.b.width, height: drag.b.height });
+  });
+  ipcMain.on('win:dragEnd', () => { drag = null; });
 
   // janela
   ipcMain.handle('win:control', (e, action) => {

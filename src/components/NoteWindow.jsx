@@ -7,7 +7,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Plus, GripVertical, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
+import { Plus, GripVertical, ChevronDown, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
 import Toolbar from './Toolbar.jsx';
 import { PALETTE } from '../palette.js';
 
@@ -22,6 +22,40 @@ export default function NoteWindow({ id }) {
   const timer = useRef(null);
   const titleTimer = useRef(null);
   const wrap = useRef(null);
+  const press = useRef(null);
+  const lastToggle = useRef(0);
+
+  const toggleCollapse = () => {
+    if (Date.now() - lastToggle.current < 500) return;
+    lastToggle.current = Date.now();
+    setPop(null);
+    setNote((n) => { const v = !n.collapsed; window.api.updateNote(id, { collapsed: v }); return { ...n, collapsed: v }; });
+  };
+  // arrastar pela barra; clique simples reabre (se recolhida), duplo clique recolhe
+  const onBarDown = (e) => {
+    if (e.button !== 0 || e.target.closest('button, input, .pop')) return;
+    press.current = { x: e.screenX, y: e.screenY, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    window.api.dragStart();
+  };
+  const onBarMove = (e) => {
+    const p = press.current;
+    if (!p) return;
+    if (!p.moved && Math.hypot(e.screenX - p.x, e.screenY - p.y) > 4) p.moved = true;
+    if (p.moved) window.api.dragMove();
+  };
+  const onBarUp = (e) => {
+    const p = press.current;
+    press.current = null;
+    window.api.dragEnd();
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ok */ }
+    if (p && !p.moved && note?.collapsed) toggleCollapse();
+  };
+  const onBarDbl = (e) => {
+    if (e.target.closest('button, .pop')) return;
+    window.getSelection()?.removeAllRanges();
+    if (!note.collapsed) toggleCollapse();
+  };
 
   const editor = useEditor({
     extensions: [
@@ -87,8 +121,15 @@ export default function NoteWindow({ id }) {
   const style = { '--bg': c.bg, '--bar': c.bar, '--text': c.text };
 
   return (
-    <div className="note" style={style} ref={wrap} data-dark={note.color === 'dark'}>
-      <div className="notebar">
+    <div className="note" style={style} ref={wrap} data-dark={note.color === 'dark'} data-collapsed={!!note.collapsed}>
+      <div className="notebar" onPointerDown={onBarDown} onPointerMove={onBarMove} onPointerUp={onBarUp} onDoubleClick={onBarDbl} title={note.collapsed ? 'Clique para abrir a nota' : undefined}>
+        {note.collapsed ? (
+          <>
+            <ChevronDown size={16} style={{ marginLeft: 6, opacity: .7, flexShrink: 0 }} />
+            <span className="collapsedtitle">{note.title || (note.text || '').split('\n')[0] || 'Sem nome'}</span>
+            <button className="nb close" title="Ocultar da tela" onClick={() => window.api.winControl('hide')}><X size={16} /></button>
+          </>
+        ) : (<>
         <button className="nb" title="Nova nota" onClick={() => window.api.createNote({})}><Plus size={16} /></button>
         <div className="grip" title="Arraste para mover"><GripVertical size={14} /></div>
         <input className="notetitle" placeholder="Nome da nota" maxLength={60} value={note.title || ''} spellCheck={false}
@@ -123,11 +164,13 @@ export default function NoteWindow({ id }) {
           )}
         </div>
         <button className="nb close" title="Ocultar da tela (a nota continua salva)" onClick={() => window.api.winControl('hide')}><X size={16} /></button>
+        </>)}
       </div>
-      <div className="notebody" onClick={onClick} onMouseDown={(e) => { if (e.target === e.currentTarget) editor?.commands.focus('end'); }}>
+      {/* corpo escondido quando recolhida */}
+      <div className="notebody" hidden={!!note.collapsed} onClick={onClick} onMouseDown={(e) => { if (e.target === e.currentTarget) editor?.commands.focus('end'); }}>
         <EditorContent editor={editor} />
       </div>
-      {showTb && <Toolbar editor={editor} />}
+      {showTb && !note.collapsed && <Toolbar editor={editor} />}
     </div>
   );
 }
