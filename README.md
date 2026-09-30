@@ -21,7 +21,7 @@ npm start        # build + executa
 ```
 
 ## Gerar o instalador (.exe)
-No Windows:
+No Windows, dê dois cliques em `criar-instalador.bat` (ou use `iniciar-teste.bat` para só testar o app). Ou pelo terminal:
 ```bash
 npm run dist
 ```
