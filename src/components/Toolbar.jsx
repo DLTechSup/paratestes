@@ -104,12 +104,12 @@ export default function Toolbar({ editor }) {
               onClear={() => { chain().unsetHighlight().run(); setPop(null); }} />
           )}
         </div>
-        <span className="sep" />
+      </div>
+      <div className="tbrow">
         <Btn title="Alinhar à esquerda" active={editor.isActive({ textAlign: 'left' })} onClick={() => chain().setTextAlign('left').run()}><AlignLeft size={15} /></Btn>
         <Btn title="Centralizar" active={editor.isActive({ textAlign: 'center' })} onClick={() => chain().setTextAlign('center').run()}><AlignCenter size={15} /></Btn>
         <Btn title="Alinhar à direita" active={editor.isActive({ textAlign: 'right' })} onClick={() => chain().setTextAlign('right').run()}><AlignRight size={15} /></Btn>
-      </div>
-      <div className="tbrow">
+        <span className="sep" />
         <Btn title="Lista com marcadores" active={editor.isActive('bulletList')} onClick={() => chain().toggleBulletList().run()}><List size={15} /></Btn>
         <Btn title="Lista numerada" active={editor.isActive('orderedList')} onClick={() => chain().toggleOrderedList().run()}><ListOrdered size={15} /></Btn>
         <Btn title="Lista de tarefas (checklist)" active={editor.isActive('taskList')} onClick={() => chain().toggleTaskList().run()}><ListChecks size={15} /></Btn>

@@ -108,6 +108,17 @@ export default function NoteWindow({ id }) {
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
+  // ao abrir a formatação em nota pequena, cresce a janela para o texto não ficar espremido
+  useEffect(() => {
+    if (!showTb || !note || note.collapsed) return undefined;
+    const t = setTimeout(() => {
+      const body = wrap.current?.querySelector('.notebody');
+      const need = 110 - (body?.clientHeight || 0);
+      if (need > 0) window.resizeBy(0, need);
+    }, 60);
+    return () => clearTimeout(t);
+  }, [showTb, note?.collapsed]);
+
   const toggleTb = () => { const v = !showTb; setShowTb(v); localStorage.setItem('nd.toolbar', v ? '1' : '0'); };
   const patch = useCallback((p) => { setNote((n) => ({ ...n, ...p })); window.api.updateNote(id, p); }, [id]);
 

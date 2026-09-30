@@ -170,3 +170,19 @@ code { background: var(--m-hover); padding: 1px 6px; border-radius: 5px; font-si
 .note[data-collapsed='true'] { border-radius: 8px; overflow: hidden; }
 .collapsedtitle { flex: 1; min-width: 0; padding: 0 8px; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .notebody[hidden] { display: none; }
+
+/* ===== painel de formatação (melhorado) ===== */
+.toolbar { position: relative; gap: 3px; padding: 6px 8px 8px; box-shadow: 0 -4px 12px rgba(0,0,0,.08); }
+.toolbar .popwrap { position: static; }
+.toolbar .pop { left: 8px; right: 8px; width: auto; bottom: calc(100% + 6px); top: auto; }
+.toolbar .colorpop, .toolbar .linkpop { width: auto; min-width: 0; }
+.toolbar .swatches { grid-template-columns: repeat(auto-fill, 26px); justify-content: start; }
+.toolbar .swatches .sw { width: 26px; height: 26px; }
+.tbrow { gap: 2px; row-gap: 3px; }
+.tb { width: 28px; height: 30px; border-radius: 7px; }
+.tbrow:first-child .tbsel:not(.size) { flex: 1; min-width: 0; max-width: none; }
+.tbsel { height: 28px; font-size: 12.5px; }
+.tbsel.size { width: 58px; }
+.tb .ind { left: 7px; right: 7px; bottom: 3px; }
+.toolbar .tbrow + .tbrow { padding-top: 3px; border-top: 1px solid rgba(0,0,0,.08); }
+.note[data-dark='true'] .toolbar .tbrow + .tbrow { border-top-color: rgba(255,255,255,.1); }
