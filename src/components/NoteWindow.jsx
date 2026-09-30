@@ -7,7 +7,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Plus, GripVertical, ChevronDown, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
+import { Plus, GripVertical, Square, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
 import Toolbar from './Toolbar.jsx';
 import { PALETTE } from '../palette.js';
 
@@ -136,8 +136,8 @@ export default function NoteWindow({ id }) {
       <div className="notebar" onPointerDown={onBarDown} onPointerMove={onBarMove} onPointerUp={onBarUp} onDoubleClick={onBarDbl} title={note.collapsed ? 'Clique para abrir a nota' : undefined}>
         {note.collapsed ? (
           <>
-            <ChevronDown size={16} style={{ marginLeft: 6, opacity: .7, flexShrink: 0 }} />
             <span className="collapsedtitle">{note.title || (note.text || '').split('\n')[0] || 'Sem nome'}</span>
+            <button className="nb" title="Abrir nota" onClick={toggleCollapse}><Square size={12} strokeWidth={2} /></button>
             <button className="nb close" title="Ocultar da tela" onClick={() => window.api.winControl('hide')}><X size={16} /></button>
           </>
         ) : (<>

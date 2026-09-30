@@ -35,7 +35,7 @@ const summary = (n) => ({
   opacity: n.opacity ?? 1, createdAt: n.createdAt, updatedAt: n.updatedAt,
   deleted: !!n.deleted, w: n.w, h: n.h,
 });
-const COLLAPSED_H = 36;
+const COLLAPSED_H = 32;
 const findNote = (id) => store.notes.find((n) => n.id === id);
 
 function broadcast() {

@@ -186,3 +186,5 @@ code { background: var(--m-hover); padding: 1px 6px; border-radius: 5px; font-si
 .tb .ind { left: 7px; right: 7px; bottom: 3px; }
 .toolbar .tbrow + .tbrow { padding-top: 3px; border-top: 1px solid rgba(0,0,0,.08); }
 .note[data-dark='true'] .toolbar .tbrow + .tbrow { border-top-color: rgba(255,255,255,.1); }
+
+.collapsedtitle { text-align: center; padding: 0 4px 0 34px; font-weight: 500; }
