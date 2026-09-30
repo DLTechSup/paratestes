@@ -36,6 +36,25 @@ const summary = (n) => ({
   deleted: !!n.deleted, w: n.w, h: n.h,
 });
 const COLLAPSED_H = 32;
+
+// ---------- menu de contexto: realce ----------
+const HL_COLORS = [['Amarelo', '#ffff00'], ['Ciano', '#00e5ff'], ['Verde', '#76ff03'], ['Rosa', '#ff80ab'], ['Laranja', '#ffab40'],
+  ['Roxo', '#b388ff'], ['Azul', '#0000ff'], ['Vermelho', '#ff5252'], ['Verde claro', '#c8e6c9'], ['Cinza', '#bdbdbd']];
+const TXT_COLORS = [['Preto', '#000000'], ['Cinza', '#5f6368'], ['Vermelho', '#d50000'], ['Laranja', '#e65100'], ['Amarelo escuro', '#f9a825'],
+  ['Verde', '#2e7d32'], ['Azul', '#1565c0'], ['Roxo', '#6a1b9a'], ['Rosa', '#c2185b'], ['Branco', '#ffffff']];
+const swatchCache = {};
+function swatch(hex) {
+  if (swatchCache[hex]) return swatchCache[hex];
+  const S = 16, buf = Buffer.alloc(S * S * 4);
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const o = (y * S + x) * 4, edge = x === 0 || y === 0 || x === S - 1 || y === S - 1;
+    const c = edge ? [110, 110, 110] : [r, g, b];
+    buf[o] = c[2]; buf[o + 1] = c[1]; buf[o + 2] = c[0]; buf[o + 3] = 255; // BGRA
+  }
+  return (swatchCache[hex] = nativeImage.createFromBitmap(buf, { width: S, height: S }));
+}
+
 const findNote = (id) => store.notes.find((n) => n.id === id);
 
 function broadcast() {
@@ -104,6 +123,23 @@ function openNoteWindow(id, { focus = false } = {}) {
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('http://localhost:5173') && !url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
   win.webContents.on('context-menu', (_e, p) => {
     const tpl = [];
+    const send = (cmd, value) => { if (!win.isDestroyed()) win.webContents.send('editor:cmd', { cmd, value }); };
+    if (p.selectionText && p.selectionText.trim()) {
+      tpl.push(
+        { label: 'Realçar (marca-texto)', submenu: [
+          ...HL_COLORS.map(([name, hex]) => ({ label: name, icon: swatch(hex), click: () => send('highlight', hex) })),
+          { type: 'separator' },
+          { label: 'Remover realce', click: () => send('highlight', null) },
+        ] },
+        { label: 'Cor do texto', submenu: [
+          ...TXT_COLORS.map(([name, hex]) => ({ label: name, icon: swatch(hex), click: () => send('color', hex) })),
+          { type: 'separator' },
+          { label: 'Cor padrão', click: () => send('color', null) },
+        ] },
+        { label: 'Negrito', accelerator: 'Ctrl+B', click: () => send('bold') },
+        { type: 'separator' },
+      );
+    }
     if (p.misspelledWord && p.dictionarySuggestions.length) {
       p.dictionarySuggestions.slice(0, 5).forEach((s) => tpl.push({ label: s, click: () => win.webContents.replaceMisspelling(s) }));
       tpl.push({ type: 'separator' });
@@ -240,6 +276,25 @@ function applyImported(list, mode) {
   return { added, updated };
 }
 
+// ---------- encaixe (ímã) entre notas ----------
+const SNAP = 14;
+function snapBounds(win, b) {
+  if (!store.settings.snap) return b;
+  const others = [...noteWins.values()].filter((w) => w !== win && !w.isDestroyed() && w.isVisible()).map((w) => w.getBounds());
+  const wa = screen.getDisplayMatching(b).workArea;
+  const best = (cands) => cands.reduce((m, d) => (Math.abs(d) <= SNAP && Math.abs(d) < Math.abs(m) ? d : m), Infinity);
+  const dxs = [wa.x - b.x, wa.x + wa.width - (b.x + b.width)];
+  const dys = [wa.y - b.y, wa.y + wa.height - (b.y + b.height)];
+  for (const o of others) {
+    const nearV = b.y < o.y + o.height + 60 && b.y + b.height > o.y - 60; // perto na vertical -> alinha/gruda nas laterais
+    const nearH = b.x < o.x + o.width + 60 && b.x + b.width > o.x - 60;
+    if (nearV) dxs.push(o.x - b.x, o.x + o.width - (b.x + b.width), o.x + o.width - b.x, o.x - (b.x + b.width));
+    if (nearH) dys.push(o.y - b.y, o.y + o.height - (b.y + b.height), o.y + o.height - b.y, o.y - (b.y + b.height));
+  }
+  const dx = best(dxs), dy = best(dys);
+  return { ...b, x: b.x + (dx === Infinity ? 0 : dx), y: b.y + (dy === Infinity ? 0 : dy) };
+}
+
 // ---------- IPC ----------
 function noteFromEvent(e) {
   for (const [id, w] of noteWins) if (!w.isDestroyed() && w.webContents === e.sender) return id;
@@ -320,10 +375,11 @@ function setupIpc() {
     const win = BrowserWindow.fromWebContents(e.sender);
     if (win) drag = { win, b: win.getBounds(), c: screen.getCursorScreenPoint() };
   });
-  ipcMain.on('win:dragMove', () => {
+  ipcMain.on('win:dragMove', (_e, noSnap) => {
     if (!drag || drag.win.isDestroyed()) return;
     const c = screen.getCursorScreenPoint();
-    drag.win.setBounds({ x: drag.b.x + c.x - drag.c.x, y: drag.b.y + c.y - drag.c.y, width: drag.b.width, height: drag.b.height });
+    const nb = { x: drag.b.x + c.x - drag.c.x, y: drag.b.y + c.y - drag.c.y, width: drag.b.width, height: drag.b.height };
+    drag.win.setBounds(noSnap ? nb : snapBounds(drag.win, nb));
   });
   ipcMain.on('win:dragEnd', () => { drag = null; });
 

@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   backupDir: '',
   backupKeep: 10,
   theme: 'auto',
+  snap: true,
   lastAutoBackup: 0,
 };
 

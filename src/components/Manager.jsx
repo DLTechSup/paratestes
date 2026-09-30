@@ -179,6 +179,8 @@ function SettingsPage({ settings, setSettings, info }) {
         <section className="panel">
           <div className="row big"><div><b>Iniciar com o Windows</b><small>Abre em segundo plano e mostra apenas as notas marcadas como “Na tela”.{info && !info.packaged ? ' (só funciona no programa instalado)' : ''}</small></div>
             <Switch on={settings.autostart} label="Iniciar com o Windows" onChange={(v) => setSettings({ autostart: v })} /></div>
+          <div className="row big"><div><b>Encaixar notas (ímã)</b><small>Ao arrastar uma nota perto de outra (ou da borda da tela), ela gruda e alinha. Segure <b>Alt</b> ao arrastar para não encaixar.</small></div>
+            <Switch on={settings.snap !== false} label="Encaixar notas" onChange={(v) => setSettings({ snap: v })} /></div>
           <div className="row big"><div><b>Tema do gerenciador</b><small>Aparência desta janela.</small></div>
             <select value={settings.theme} onChange={(e) => setSettings({ theme: e.target.value })}>
               <option value="auto">Automático</option><option value="dark">Escuro</option><option value="light">Claro</option>
@@ -190,7 +192,7 @@ function SettingsPage({ settings, setSettings, info }) {
             <li>Fechar esta janela mantém o NoteDeck rodando na <b>bandeja do sistema</b> (perto do relógio). Clique no ícone para abrir ou use o botão direito para ligar/desligar notas.</li>
             <li>O <b>X</b> de cada nota só a oculta da tela — ela continua salva aqui.</li>
             <li>Na barra <b>Aa</b> da nota: cores, marca-texto, fontes, listas e checklist. O texto digitado depois de um trecho marcado <b>não</b> herda a cor.</li>
-            <li>Clique com o botão direito no texto para Copiar/Colar; use Ctrl+Shift+V para colar sem formatação.</li>
+            <li>Selecione um texto e clique com o <b>botão direito</b> para escolher a cor do <b>realce</b> (marca-texto) ou do texto. Também dá para Copiar/Colar; use Ctrl+Shift+V para colar sem formatação.</li>
           </ul>
         </section>
         <section className="panel about">

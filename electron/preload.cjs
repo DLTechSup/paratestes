@@ -29,7 +29,8 @@ contextBridge.exposeInMainWorld('api', {
   getInfo: () => invoke('app:info'),
   // janela
   dragStart: () => ipcRenderer.send('win:dragStart'),
-  dragMove: () => ipcRenderer.send('win:dragMove'),
+  dragMove: (noSnap) => ipcRenderer.send('win:dragMove', !!noSnap),
+  onEditorCommand: (cb) => { const h = (_e, d) => cb(d); ipcRenderer.on('editor:cmd', h); return () => ipcRenderer.removeListener('editor:cmd', h); },
   dragEnd: () => ipcRenderer.send('win:dragEnd'),
   winControl: (action) => invoke('win:control', action),
   openManager: () => invoke('app:openManager'),

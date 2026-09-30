@@ -42,7 +42,7 @@ export default function NoteWindow({ id }) {
     const p = press.current;
     if (!p) return;
     if (!p.moved && Math.hypot(e.screenX - p.x, e.screenY - p.y) > 4) p.moved = true;
-    if (p.moved) window.api.dragMove();
+    if (p.moved) window.api.dragMove(e.altKey);
   };
   const onBarUp = (e) => {
     const p = press.current;
@@ -89,6 +89,17 @@ export default function NoteWindow({ id }) {
       editor.commands.setContent(note.html || '<p></p>', { emitUpdate: false });
     }
   }, [note, editor]);
+
+  // comandos vindos do menu de contexto (botão direito)
+  useEffect(() => {
+    if (!editor) return undefined;
+    return window.api.onEditorCommand(({ cmd, value }) => {
+      const ch = editor.chain().focus();
+      if (cmd === 'highlight') (value ? ch.setHighlight({ color: value }) : ch.unsetHighlight()).run();
+      else if (cmd === 'color') (value ? ch.setColor(value) : ch.unsetColor()).run();
+      else if (cmd === 'bold') ch.toggleBold().run();
+    });
+  }, [editor]);
 
   // salva pendências ao fechar
   useEffect(() => {
