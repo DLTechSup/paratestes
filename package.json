@@ -3,7 +3,9 @@
   "productName": "NoteDeck",
   "version": "1.0.0",
   "description": "NoteDeck - Notas adesivas organizadas, por DLTechSup",
-  "author": "DLTechSup",
+  "author": {
+    "name": "DLTechSup"
+  },
   "main": "electron/main.cjs",
   "private": true,
   "scripts": {
@@ -64,15 +66,16 @@
         }
       ],
       "icon": "build/icon.png",
-      "publisherName": "DLTechSup"
+      "publisherName": "DLTechSup",
+      "legalTrademarks": "DLTechSup"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "DLTechSup-NoteDeck-Setup-${version}.${ext}",
+      "artifactName": "NoteDeck-Setup-${version}.${ext}",
       "shortcutName": "NoteDeck",
-      "uninstallDisplayName": "NoteDeck (DLTechSup)",
+      "uninstallDisplayName": "NoteDeck",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "language": "1046",

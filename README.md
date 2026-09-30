@@ -25,7 +25,7 @@ No Windows:
 ```bash
 npm run dist
 ```
-O instalador sai em `release/DLTechSup-NoteDeck-Setup-<versão>.exe`.
+O instalador sai em `release/NoteDeck-Setup-<versão>.exe`.
 Sem Windows à mão: o workflow **Build instalador Windows** (GitHub Actions) gera o `.exe` como artefato a cada push.
 
 Dados ficam em `%APPDATA%\notedeck\notedeck-data.json`. Backups automáticos em `Documentos\NoteDeck Backups`.
