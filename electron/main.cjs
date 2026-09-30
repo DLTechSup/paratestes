@@ -121,16 +121,23 @@ function openNoteWindow(id, { focus = false } = {}) {
 
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:|^mailto:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('http://localhost:5173') && !url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
-  win.webContents.on('context-menu', (_e, p) => {
+  win.webContents.on('context-menu', async (_e, p) => {
     const tpl = [];
+    // há realce sob o cursor? (permite remover sem precisar selecionar o texto)
+    let onHl = false;
+    try { onHl = await win.webContents.executeJavaScript(`!!document.elementFromPoint(${+p.x || 0}, ${+p.y || 0})?.closest('mark')`); } catch { /* ignora */ }
+    if (win.isDestroyed()) return;
     const send = (cmd, value) => { if (!win.isDestroyed()) win.webContents.send('editor:cmd', { cmd, value }); };
+    const rmHl = { label: 'Remover realce', click: () => send('unhighlightAt', { x: p.x, y: p.y }) };
+    if (!(p.selectionText && p.selectionText.trim()) && onHl) tpl.push(rmHl, { type: 'separator' });
     if (p.selectionText && p.selectionText.trim()) {
       tpl.push(
         { label: 'Realçar (marca-texto)', submenu: [
           ...HL_COLORS.map(([name, hex]) => ({ label: name, icon: swatch(hex), click: () => send('highlight', hex) })),
           { type: 'separator' },
-          { label: 'Remover realce', click: () => send('highlight', null) },
+          { label: 'Remover realce', click: () => send('unhighlightAt', { x: p.x, y: p.y }) },
         ] },
+        ...(onHl ? [rmHl] : []),
         { label: 'Cor do texto', submenu: [
           ...TXT_COLORS.map(([name, hex]) => ({ label: name, icon: swatch(hex), click: () => send('color', hex) })),
           { type: 'separator' },

@@ -96,7 +96,13 @@ export default function NoteWindow({ id }) {
     return window.api.onEditorCommand(({ cmd, value }) => {
       const ch = editor.chain().focus();
       if (cmd === 'highlight') (value ? ch.setHighlight({ color: value }) : ch.unsetHighlight()).run();
-      else if (cmd === 'color') (value ? ch.setColor(value) : ch.unsetColor()).run();
+      else if (cmd === 'unhighlightAt') {
+        if (!editor.state.selection.empty) ch.unsetHighlight().run();
+        else {
+          const at = editor.view.posAtCoords({ left: value.x, top: value.y });
+          if (at) editor.chain().focus().setTextSelection(at.pos).extendMarkRange('highlight').unsetHighlight().run();
+        }
+      } else if (cmd === 'color') (value ? ch.setColor(value) : ch.unsetColor()).run();
       else if (cmd === 'bold') ch.toggleBold().run();
     });
   }, [editor]);
