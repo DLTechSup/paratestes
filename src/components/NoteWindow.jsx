@@ -7,7 +7,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Plus, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
+import { Plus, GripVertical, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
 import Toolbar from './Toolbar.jsx';
 import { PALETTE } from '../palette.js';
 
@@ -20,6 +20,7 @@ export default function NoteWindow({ id }) {
   const [showTb, setShowTb] = useState(() => localStorage.getItem('nd.toolbar') === '1');
   const [pop, setPop] = useState(null); // 'color' | 'menu'
   const timer = useRef(null);
+  const titleTimer = useRef(null);
   const wrap = useRef(null);
 
   const editor = useEditor({
@@ -89,7 +90,10 @@ export default function NoteWindow({ id }) {
     <div className="note" style={style} ref={wrap} data-dark={note.color === 'dark'}>
       <div className="notebar">
         <button className="nb" title="Nova nota" onClick={() => window.api.createNote({})}><Plus size={16} /></button>
-        <div className="grow" />
+        <div className="grip" title="Arraste para mover"><GripVertical size={14} /></div>
+        <input className="notetitle" placeholder="Nome da nota" maxLength={60} value={note.title || ''} spellCheck={false}
+          onChange={(e) => { setNote((n) => ({ ...n, title: e.target.value })); clearTimeout(titleTimer.current); const v = e.target.value; titleTimer.current = setTimeout(() => window.api.updateNote(id, { title: v }), 300); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') editor?.commands.focus('end'); }} />
         <button className="nb" title={note.pinned ? 'Desafixar (deixar de ficar por cima)' : 'Fixar por cima das outras janelas'} onClick={() => patch({ pinned: !note.pinned })}>
           {note.pinned ? <Pin size={14} fill="currentColor" /> : <PinOff size={14} />}
         </button>

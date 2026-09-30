@@ -20,6 +20,16 @@ function Switch({ on, onChange, label }) {
   );
 }
 
+function TitleInput({ note, color }) {
+  const [v, setV] = useState(note.title || '');
+  useEffect(() => setV(note.title || ''), [note.title]);
+  const commit = () => { if (v !== (note.title || '')) window.api.updateNote(note.id, { title: v.trim() }); };
+  return (
+    <input className="cardtitle" style={{ color }} value={v} placeholder="Sem nome — clique para nomear" maxLength={60} spellCheck={false}
+      onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+  );
+}
+
 function NotesPage({ notes, trash }) {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
@@ -28,7 +38,7 @@ function NotesPage({ notes, trash }) {
     return notes
       .filter((n) => !!n.deleted === trash)
       .filter((n) => (filter === 'on' ? n.visible : filter === 'off' ? !n.visible : true))
-      .filter((n) => !s || (n.text || '').toLowerCase().includes(s))
+      .filter((n) => !s || (n.text || '').toLowerCase().includes(s) || (n.title || '').toLowerCase().includes(s))
       .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }, [notes, q, filter, trash]);
   const active = notes.filter((n) => !n.deleted);
@@ -79,7 +89,8 @@ function NotesPage({ notes, trash }) {
             return (
               <article key={n.id} className={'card' + (n.visible ? ' live' : '')}>
                 <div className="cardtop" style={{ background: c.bar }}>
-                  <span style={{ color: c.text }}>{n.visible ? 'Na tela' : 'Oculta'}</span>
+                  <span className={'dot' + (n.visible ? ' on' : '')} title={n.visible ? 'Na tela' : 'Oculta'} />
+                  <TitleInput note={n} color={c.text} />
                   {n.pinned && <Pin size={13} style={{ color: c.text }} />}
                 </div>
                 <div className="cardbody" style={{ background: c.bg, color: c.text }} onDoubleClick={() => !trash && window.api.focusNote(n.id)}>

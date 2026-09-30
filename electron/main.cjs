@@ -31,7 +31,7 @@ function loadView(win, hash) {
 
 // ---------- utilidades de notas ----------
 const summary = (n) => ({
-  id: n.id, text: n.text || '', color: n.color, visible: !!n.visible, pinned: !!n.pinned,
+  id: n.id, title: n.title || '', text: n.text || '', color: n.color, visible: !!n.visible, pinned: !!n.pinned,
   opacity: n.opacity ?? 1, createdAt: n.createdAt, updatedAt: n.updatedAt,
   deleted: !!n.deleted, w: n.w, h: n.h,
 });
@@ -160,7 +160,7 @@ function refreshTray() {
   if (!tray) return;
   const live = store.notes.filter((n) => !n.deleted);
   const items = live.slice(0, 20).map((n) => ({
-    label: ((n.text || '').split('\n')[0] || 'Nota vazia').slice(0, 40),
+    label: (n.title || (n.text || '').split('\n')[0] || 'Nota vazia').slice(0, 40),
     type: 'checkbox', checked: !!n.visible, click: () => setVisible(n.id, !n.visible),
   }));
   tray.setContextMenu(Menu.buildFromTemplate([
@@ -256,7 +256,7 @@ function setupIpc() {
   ipcMain.handle('notes:update', (_e, id, patch) => {
     const n = findNote(id);
     if (!n) return null;
-    const allowed = ['html', 'text', 'color', 'opacity', 'pinned'];
+    const allowed = ['html', 'text', 'title', 'color', 'opacity', 'pinned'];
     for (const k of allowed) if (k in patch) n[k] = patch[k];
     if ('html' in patch) { n.updatedAt = now(); if (!('text' in patch)) n.text = htmlToText(n.html); }
     store.saveSoon();
@@ -266,6 +266,7 @@ function setupIpc() {
       if ('opacity' in patch) w.setOpacity(Math.min(1, Math.max(0.3, n.opacity)));
       if ('color' in patch) w.setBackgroundColor((palette[n.color] || palette.yellow).bg);
     }
+    if ('title' in patch && w && !w.isDestroyed()) w.setTitle(n.title || 'Nota');
     broadcast();
     return summary(n);
   });
@@ -273,7 +274,7 @@ function setupIpc() {
   ipcMain.handle('notes:setAllVisible', (_e, v) => setAll(v));
   ipcMain.handle('notes:duplicate', (_e, id) => {
     const o = findNote(id); if (!o) return;
-    const n = newNote({ color: o.color, x: (o.x || 80) + 30, y: (o.y || 80) + 30, w: o.w, h: o.h, visible: o.visible, extra: { html: o.html, text: o.text } });
+    const n = newNote({ color: o.color, x: (o.x || 80) + 30, y: (o.y || 80) + 30, w: o.w, h: o.h, visible: o.visible, extra: { html: o.html, text: o.text, title: o.title ? `${o.title} (cópia)` : '' } });
     if (n.visible) openNoteWindow(n.id);
     broadcast();
   });

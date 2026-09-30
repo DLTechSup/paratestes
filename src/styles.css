@@ -151,3 +151,16 @@ code { background: var(--m-hover); padding: 1px 6px; border-radius: 5px; font-si
 .toast.err { background: #c73b3b; }
 .content::-webkit-scrollbar { width: 10px; }
 .content::-webkit-scrollbar-thumb { background: var(--m-line); border-radius: 5px; }
+
+/* nome da nota */
+.grip { width: 16px; height: 26px; display: grid; place-items: center; opacity: .45; -webkit-app-region: drag; cursor: move; }
+.notetitle { flex: 1; min-width: 40px; height: 24px; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0 6px; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; -webkit-app-region: no-drag; }
+.notetitle::placeholder { color: var(--text); opacity: .4; font-weight: 400; }
+.notetitle:hover, .notetitle:focus { background: rgba(255,255,255,.35); border-color: rgba(0,0,0,.15); outline: 0; }
+.note[data-dark='true'] .notetitle:hover, .note[data-dark='true'] .notetitle:focus { background: rgba(255,255,255,.1); }
+.cardtop { gap: 8px; }
+.cardtop .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,.25); flex-shrink: 0; }
+.cardtop .dot.on { background: #1f9d4c; box-shadow: 0 0 0 2px rgba(31,157,76,.3); }
+.cardtitle { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 2px 5px; font: inherit; font-size: 13px; font-weight: 700; text-transform: none; letter-spacing: 0; }
+.cardtitle::placeholder { color: inherit; opacity: .45; font-weight: 400; }
+.cardtitle:hover, .cardtitle:focus { background: rgba(255,255,255,.4); border-color: rgba(0,0,0,.15); outline: 0; }
