@@ -188,3 +188,20 @@ code { background: var(--m-hover); padding: 1px 6px; border-radius: 5px; font-si
 .note[data-dark='true'] .toolbar .tbrow + .tbrow { border-top-color: rgba(255,255,255,.1); }
 
 .collapsedtitle { text-align: center; padding: 0 4px 0 34px; font-weight: 500; }
+
+/* ===== busca na nota ===== */
+.findbar { background: var(--bar); border-bottom: 1px solid rgba(0,0,0,.12); padding: 5px 6px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.frow { display: flex; align-items: center; gap: 2px; }
+.frow input { flex: 1; min-width: 0; height: 26px; border: 1px solid rgba(0,0,0,.25); border-radius: 6px; padding: 0 8px; font: inherit; font-size: 13px; background: rgba(255,255,255,.85); color: #222; outline: 0; }
+.frow input:focus { border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,.25); }
+.frow input.nohit { border-color: #d33; background: #ffecec; }
+.fcount { font-size: 11.5px; min-width: 38px; text-align: center; opacity: .75; white-space: nowrap; }
+.fb { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; color: var(--text); }
+.fb:hover:not(:disabled) { background: rgba(0,0,0,.12); }
+.fb.on { background: rgba(0,0,0,.22); }
+.fb:disabled { opacity: .3; }
+.ftxt { height: 26px; padding: 0 10px; border-radius: 6px; font-size: 12px; background: rgba(0,0,0,.12); color: var(--text); white-space: nowrap; }
+.ftxt:hover:not(:disabled) { background: rgba(0,0,0,.22); }
+.ftxt:disabled { opacity: .35; }
+.search-hit { background: rgba(255,171,0,.5); border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,171,0,.7); }
+.search-hit.current { background: #ff9100; color: #000; box-shadow: 0 0 0 2px #e65100; }

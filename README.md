@@ -11,6 +11,7 @@ quais ficam aparecendo na tela (e pode ligar/desligar depois). Feito com Electro
 - **Marca-texto/cor só no trecho selecionado**: o que você digita depois não herda a cor.
 - **Botão direito no texto selecionado**: realçar com 10 cores (ou remover), mudar cor do texto.
 - **Encaixe (ímã)**: ao arrastar uma nota perto de outra ou da borda da tela ela gruda e alinha (Alt desativa).
+- **Buscar na nota (Ctrl+F)**: destaca todas as ocorrências, navega com Enter/Shift+Enter, diferencia maiúsculas e tem Substituir/Todas.
 - **Recolher nota**: duplo clique na barra da nota a recolhe mostrando só o nome; um clique na barra recolhida reabre.
 - 11 cores de nota, fixar por cima das janelas, transparência, exportar nota em `.txt`.
 - Backup: exportar/importar `.json`, backup automático diário (mantém os últimos N) e **importação de arquivos `.db`** do Simple Sticky Notes (SQLite, com conversão de RTF).

@@ -7,8 +7,10 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Plus, GripVertical, Square, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
+import { Plus, Search, GripVertical, Square, Pin, PinOff, Palette, Type, MoreHorizontal, X, LayoutGrid, Copy, FileDown, Trash2 } from 'lucide-react';
 import Toolbar from './Toolbar.jsx';
+import FindBar from './FindBar.jsx';
+import { SearchExtension } from '../search.js';
 import { PALETTE } from '../palette.js';
 
 // inclusive:false => ao digitar logo após um trecho colorido/marcado, o texto novo NÃO herda a cor.
@@ -22,6 +24,7 @@ export default function NoteWindow({ id }) {
   const timer = useRef(null);
   const titleTimer = useRef(null);
   const wrap = useRef(null);
+  const [find, setFind] = useState(null); // null = fechado; string = termo inicial
   const press = useRef(null);
   const lastToggle = useRef(0);
 
@@ -60,7 +63,7 @@ export default function NoteWindow({ id }) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener noreferrer' } } }),
-      StyleMark, Color, FontFamily, FontSize, HighlightMark,
+      SearchExtension, StyleMark, Color, FontFamily, FontSize, HighlightMark,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TaskList, TaskItem.configure({ nested: true }),
       Placeholder.configure({ placeholder: 'Escreva sua nota…' }),
@@ -89,6 +92,20 @@ export default function NoteWindow({ id }) {
       editor.commands.setContent(note.html || '<p></p>', { emitUpdate: false });
     }
   }, [note, editor]);
+
+  // Ctrl+F abre a busca da nota; F3/Esc tratados na própria barra
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        const sel = editor && !editor.state.selection.empty && editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ');
+        if (note?.collapsed) toggleCollapse();
+        setFind(sel && sel.length < 80 ? sel : (find ?? ''));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   // comandos vindos do menu de contexto (botão direito)
   useEffect(() => {
@@ -163,6 +180,7 @@ export default function NoteWindow({ id }) {
         <input className="notetitle" placeholder="Nome da nota" maxLength={60} value={note.title || ''} spellCheck={false}
           onChange={(e) => { setNote((n) => ({ ...n, title: e.target.value })); clearTimeout(titleTimer.current); const v = e.target.value; titleTimer.current = setTimeout(() => window.api.updateNote(id, { title: v }), 300); }}
           onKeyDown={(e) => { if (e.key === 'Enter') editor?.commands.focus('end'); }} />
+        <button className={'nb' + (find !== null ? ' on' : '')} title="Buscar na nota (Ctrl+F)" onClick={() => setFind(find === null ? '' : null)}><Search size={14} /></button>
         <button className="nb" title={note.pinned ? 'Desafixar (deixar de ficar por cima)' : 'Fixar por cima das outras janelas'} onClick={() => patch({ pinned: !note.pinned })}>
           {note.pinned ? <Pin size={14} fill="currentColor" /> : <PinOff size={14} />}
         </button>
@@ -194,6 +212,7 @@ export default function NoteWindow({ id }) {
         <button className="nb close" title="Ocultar da tela (a nota continua salva)" onClick={() => window.api.winControl('hide')}><X size={16} /></button>
         </>)}
       </div>
+      {find !== null && !note.collapsed && <FindBar key="find" editor={editor} initial={find} onClose={() => { setFind(null); editor?.commands.focus(); }} />}
       {/* corpo escondido quando recolhida */}
       <div className="notebody" hidden={!!note.collapsed} onClick={onClick} onMouseDown={(e) => { if (e.target === e.currentTarget) editor?.commands.focus('end'); }}>
         <EditorContent editor={editor} />
