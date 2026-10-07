@@ -66,6 +66,10 @@ function goTo(editor, index) {
   const tr = editor.state.tr.setMeta(searchKey, { index: i })
     .setSelection(TextSelection.create(editor.state.doc, r.from, r.to)).scrollIntoView();
   editor.view.dispatch(tr);
+  // rola a lista (.notebody) até a ocorrência atual, mesmo com o foco no campo de busca
+  requestAnimationFrame(() => {
+    editor.view.dom.querySelector('.search-hit.current')?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+  });
 }
 
 export function setSearch(editor, query, cs, start) {
