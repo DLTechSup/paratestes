@@ -154,6 +154,10 @@ else {
     uso = new Uso(app.getPath('userData'));
     assistente = new nucleo.Assistente(cfg.get().pastas);
     nucleo.setAbridor((p) => shell.openPath(p)); // '' = sucesso
+    nucleo.setAbridorUrl(async (u, navegador) => {
+      if (navegador) return false; // navegador específico: o núcleo cuida (PowerShell)
+      try { await shell.openExternal(u); return true; } catch { return false; }
+    });
     admin = nucleo.eAdministrador();
 
     session.defaultSession.setPermissionRequestHandler((_wc, permissao, cb) => cb(['media', 'audioCapture'].includes(permissao)));

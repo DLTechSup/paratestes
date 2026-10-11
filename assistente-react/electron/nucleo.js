@@ -102,8 +102,13 @@ const soDigitos = (t) => String(t ?? '').replace(/\D/g, '');
 // ───────────────────────── sistema ─────────────────────────
 const cacheLnk = new Map();
 
+/** Argumentos do PowerShell com o script em base64 (-EncodedCommand): nenhum problema de aspas/acentos. */
+function psArgs(script) {
+  return ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')];
+}
+
 function powershell(script, { env = {}, timeout = 30000 } = {}) {
-  return spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script],
+  return spawnSync('powershell', psArgs(script),
     { encoding: 'utf8', env: { ...process.env, ...env }, timeout, windowsHide: true });
 }
 
@@ -171,6 +176,103 @@ let abridor = (caminho) => new Promise((resolve) => {
 });
 const setAbridor = (fn) => { abridor = fn; };
 
+// ───────────────────────── sites ─────────────────────────
+const SITES = {
+  youtube: 'https://www.youtube.com', google: 'https://www.google.com', gmail: 'https://mail.google.com', email: 'https://mail.google.com',
+  drive: 'https://drive.google.com', 'google drive': 'https://drive.google.com', agenda: 'https://calendar.google.com', 'google agenda': 'https://calendar.google.com',
+  maps: 'https://maps.google.com', 'google maps': 'https://maps.google.com', tradutor: 'https://translate.google.com', 'google tradutor': 'https://translate.google.com',
+  whatsapp: 'https://web.whatsapp.com', 'whatsapp web': 'https://web.whatsapp.com', facebook: 'https://www.facebook.com', instagram: 'https://www.instagram.com',
+  linkedin: 'https://www.linkedin.com', twitter: 'https://x.com', x: 'https://x.com', tiktok: 'https://www.tiktok.com', github: 'https://github.com',
+  netflix: 'https://www.netflix.com', spotify: 'https://open.spotify.com', amazon: 'https://www.amazon.com.br', 'mercado livre': 'https://www.mercadolivre.com.br',
+  mercadolivre: 'https://www.mercadolivre.com.br', outlook: 'https://outlook.live.com', g1: 'https://g1.globo.com', globo: 'https://www.globo.com', uol: 'https://www.uol.com.br',
+};
+const enc = encodeURIComponent;
+const BUSCAS = {
+  google: (q) => `https://www.google.com/search?q=${enc(q)}`,
+  youtube: (q) => `https://www.youtube.com/results?search_query=${enc(q)}`,
+  amazon: (q) => `https://www.amazon.com.br/s?k=${enc(q)}`,
+  'mercado livre': (q) => `https://lista.mercadolivre.com.br/${enc(q).replace(/%20/g, '-')}`,
+  mercadolivre: (q) => `https://lista.mercadolivre.com.br/${enc(q).replace(/%20/g, '-')}`,
+  maps: (q) => `https://www.google.com/maps/search/${enc(q)}`, 'google maps': (q) => `https://www.google.com/maps/search/${enc(q)}`,
+};
+const NAVEGADORES = { chrome: 'chrome', 'google chrome': 'chrome', edge: 'msedge', 'microsoft edge': 'msedge', firefox: 'firefox', brave: 'brave', opera: 'opera' };
+
+/** 'youtube' | 'youtube.com' | 'https://x.com/a' -> URL https válida; '' se não parecer um endereço. Só http/https. */
+function normalizarUrl(entrada) {
+  let s = String(entrada ?? '').trim().replace(/^["'`]+|["'`]+$/g, '');
+  if (!s || s.length > 2000) return '';
+  const n = norm(s);
+  if (SITES[n]) return SITES[n];
+  if (/^[a-z][a-z0-9+.-]*:(?!\/\/|\d)/i.test(s)) return ''; // javascript:, mailto:, data: ... (só aceita "host:porta" e http(s)://)
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
+    if (/\s/.test(s)) return '';
+    if (!s.includes('.')) s = `www.${s}.com`;
+    s = `https://${s}`;
+  }
+  try {
+    const u = new URL(s);
+    if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.') || u.username || u.password) return '';
+    return u.href;
+  } catch { return ''; }
+}
+
+// Abre uma URL no navegador padrão (o Electron troca por shell.openExternal via setAbridorUrl)
+let abridorUrl = (url, navegador = '') => new Promise((resolve) => {
+  try {
+    let cmd;
+    if (WIN) {
+      const ps = navegador ? 'Start-Process $env:NAV -ArgumentList $env:URL' : 'Start-Process $env:URL';
+      cmd = ['powershell', psArgs(ps)];
+    } else cmd = process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+    const p = spawn(cmd[0], cmd[1], { detached: true, stdio: 'ignore', windowsHide: true, env: { ...process.env, URL: url, NAV: navegador } });
+    p.on('error', () => resolve(false)); p.unref(); resolve(true);
+  } catch { resolve(false); }
+});
+const setAbridorUrl = (fn) => { abridorUrl = fn; };
+
+// ───────────────────────── fechar janelas / programas (Windows) ─────────────────────────
+/** Caminhos das pastas abertas em janelas do Explorador de Arquivos. */
+function listarJanelasPasta() {
+  if (!WIN) return [];
+  const ps = "[Console]::OutputEncoding=[Text.Encoding]::UTF8;$s=New-Object -ComObject Shell.Application;$r=@();" +
+    "foreach($w in @($s.Windows())){ try{ if($w.FullName -like '*\\explorer.exe'){ $p=$w.Document.Folder.Self.Path; if($p -and $p -notlike '::*'){ $r+=$p } } }catch{} };" +
+    "ConvertTo-Json -InputObject @($r) -Compress";
+  try {
+    const r = powershell(ps, { timeout: 15000 });
+    const v = JSON.parse(String(r.stdout || '[]').trim() || '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch { return []; }
+}
+
+/** Fecha as janelas do Explorador cujos caminhos estão na lista. Devolve quantas fechou. */
+function fecharJanelasPasta(caminhos) {
+  if (!WIN || !caminhos.length) return 0;
+  const ps = "$alvo=@($env:ALVOS -split \"`n\");$s=New-Object -ComObject Shell.Application;$n=0;" +
+    "foreach($w in @($s.Windows())){ try{ if($w.FullName -like '*\\explorer.exe'){ $p=$w.Document.Folder.Self.Path; if($alvo -contains $p){ $w.Quit(); $n++ } } }catch{} };$n";
+  try {
+    const r = powershell(ps, { env: { ALVOS: caminhos.join('\n') }, timeout: 15000 });
+    return parseInt(String(r.stdout || '0').trim(), 10) || 0;
+  } catch { return 0; }
+}
+
+const PROCESSOS_PROTEGIDOS = ['explorer', 'dwm', 'ShellExperienceHost', 'SearchHost', 'StartMenuExperienceHost', 'TextInputHost', 'Assistente de Voz', 'powershell', 'cmd'];
+const PROC_POR_NOME = { chrome: 'chrome', 'google chrome': 'chrome', edge: 'msedge', excel: 'EXCEL', word: 'WINWORD', powerpoint: 'POWERPNT',
+  outlook: 'OUTLOOK', 'bloco de notas': 'notepad', paint: 'mspaint', calculadora: 'CalculatorApp', firefox: 'firefox', spotify: 'Spotify', whatsapp: 'WhatsApp' };
+
+/** Pede educadamente que o programa feche (CloseMainWindow: ele ainda pergunta se quer salvar). Devolve nomes dos processos fechados. */
+function fecharProgramaPorNome(nome, procSugerido) {
+  if (!WIN) return [];
+  const ps = "$n=[WildcardPattern]::Escape($env:ALVO);$proc=$env:PROC;$prot=@($env:PROTEGIDOS -split ',');$feito=@();" +
+    "foreach($x in @(Get-Process)){ try{ if($x.MainWindowHandle -ne 0 -and ($prot -notcontains $x.ProcessName) -and " +
+    "( ($proc -and $x.ProcessName -eq $proc) -or $x.ProcessName -like \"*$n*\" -or $x.MainWindowTitle -like \"*$n*\" )){ if($x.CloseMainWindow()){ $feito+=$x.ProcessName } } }catch{} };" +
+    "[Console]::OutputEncoding=[Text.Encoding]::UTF8; ConvertTo-Json -InputObject @($feito | Select-Object -Unique) -Compress";
+  try {
+    const r = powershell(ps, { env: { ALVO: nome, PROC: procSugerido || '', PROTEGIDOS: PROCESSOS_PROTEGIDOS.join(',') }, timeout: 20000 });
+    const v = JSON.parse(String(r.stdout || '[]').trim() || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+
 // ───────────────────────── assistente ─────────────────────────
 class Assistente {
   constructor(cfg = {}) {
@@ -180,6 +282,8 @@ class Assistente {
     this._catalogo = null;
     this._catalogoT = 0;
     this._programas = null;
+    this.abertas = [];       // pastas que o assistente abriu (a mais recente por último)
+    this.sys = { win: WIN, listarJanelasPasta, fecharJanelasPasta, fecharProgramaPorNome }; // trocável nos testes
   }
 
   setConfig(cfg) {
@@ -305,6 +409,7 @@ class Assistente {
 
   async _abrir(caminho) {
     const erro = await abridor(caminho);
+    if (!erro && ehPasta(caminho)) { this.abertas = this.abertas.filter((p) => p !== caminho); this.abertas.push(caminho); }
     return !erro;
   }
 
@@ -385,6 +490,62 @@ class Assistente {
     return `Lista atualizada: ${this._catalogo.length} pastas conhecidas.`;
   }
 
+  // ---------- sites ----------
+  async abrirSite(url = '', busca = '', navegador = '') {
+    busca = String(busca || '').trim();
+    let alvo = '';
+    if (busca) {
+      const f = BUSCAS[norm(url)] || BUSCAS.google;
+      alvo = f(busca);
+    } else alvo = normalizarUrl(url);
+    if (!alvo) return `Não entendi o endereço '${url}'. Diga o site completo, como youtube.com.`;
+    const nav = NAVEGADORES[norm(navegador)] || '';
+    let ok = await abridorUrl(alvo, nav);
+    if (!ok && nav) ok = await abridorUrl(alvo, ''); // navegador pedido não existe: usa o padrão
+    if (!ok) return 'Não consegui abrir o navegador.';
+    const host = new URL(alvo).hostname.replace(/^www\./, '');
+    return `Abri ${host}${busca ? ` pesquisando “${busca}”` : ''}${nav ? ` no ${navegador}` : ''}.`;
+  }
+
+  // ---------- fechar ----------
+  async fecharPasta(nome = '', todas = false) {
+    if (!this.sys.win) return 'Fechar janelas de pasta só funciona no Windows.';
+    const janelas = this.sys.listarJanelasPasta();
+    if (!janelas.length) return 'Não há nenhuma janela de pasta aberta.';
+    const mesmo = (a, b) => a.toLowerCase() === b.toLowerCase();
+    const rotulo = (p) => path.basename(p) || p;
+    let alvos = [];
+    if (todas) alvos = janelas;
+    else if (nome) {
+      const q = norm(nome);
+      // vale o nome da própria pasta e, com desconto, o das pastas-mãe ("fecha a Vizzano" fecha Vizzano\\7526.2526)
+      const pontua = (p) => Math.max(pontuar(q, norm(rotulo(p))), ...p.split(/[\\/]/).slice(0, -1).filter(Boolean).map((c) => pontuar(q, norm(c)) - 8));
+      const pontos = janelas.map((p) => [p, pontua(p)]);
+      const melhor = Math.max(...pontos.map((x) => x[1]));
+      if (melhor < 55) return `Não achei uma janela de pasta aberta parecida com '${nome}'. Abertas: ${janelas.map(rotulo).join(', ')}.`;
+      alvos = pontos.filter((x) => x[1] >= melhor - 3).map((x) => x[0]);
+    } else {
+      const candidatas = [this.atual, ...[...this.abertas].reverse()].filter(Boolean);
+      const achada = candidatas.map((c) => janelas.find((j) => mesmo(j, c))).find(Boolean);
+      if (achada) alvos = [achada];
+      else if (janelas.length === 1) alvos = janelas;
+      else return `Há ${janelas.length} janelas de pasta abertas: ${janelas.map(rotulo).join(', ')}. Diga qual fechar, ou "todas".`;
+    }
+    const n = this.sys.fecharJanelasPasta(alvos);
+    if (!n) return 'Não consegui fechar a janela da pasta.';
+    return `Fechei ${n === 1 ? `a janela ${rotulo(alvos[0])}` : `${n} janelas de pasta`}.`;
+  }
+
+  async fecharPrograma(nome) {
+    if (!this.sys.win) return 'Fechar programas só funciona no Windows.';
+    const q = norm(nome);
+    if (!q) return 'Diga qual programa fechar.';
+    if (['explorador', 'explorador de arquivos', 'pasta', 'pastas'].includes(q)) return this.fecharPasta('', q.startsWith('pasta'));
+    const proc = PROC_POR_NOME[q] || '';
+    const fechados = this.sys.fecharProgramaPorNome(nome, proc);
+    return fechados.length ? `Pedi para fechar ${nome}. Se ele perguntar se quer salvar, responda na tela.` : `Não achei o programa '${nome}' aberto (ou ele não respondeu ao pedido de fechar).`;
+  }
+
   // ---------- programas ----------
   _indiceProgramas() {
     if (this._programas) return this._programas;
@@ -445,7 +606,7 @@ class Assistente {
       fechar_janela: sk("'%{F4}'"), trocar_janela: sk("'%{TAB}'"),
     };
     try {
-      const p = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', scripts[acao]], { detached: true, stdio: 'ignore', windowsHide: true });
+      const p = spawn('powershell', psArgs(scripts[acao]), { detached: true, stdio: 'ignore', windowsHide: true });
       p.on('error', () => {}); p.unref();
       return 'Feito.';
     } catch (e) { return `Não consegui: ${e.message}`; }
@@ -481,6 +642,16 @@ const FERRAMENTAS = [
     parameters: obj({ nome: { type: 'STRING' } }, ['nome']) },
   { name: 'controlar_pc', description: 'Controla o computador: ' + ACOES.join(', ') + '.',
     parameters: obj({ acao: { type: 'STRING', enum: ACOES }, passos: { type: 'INTEGER', description: 'Quantas vezes repetir (volume). Padrão 1; cada passo ≈ 2%.' } }, ['acao']) },
+  { name: 'abrir_site',
+    description: "Abre um site no navegador, na página certa (não só o navegador). Ex.: url 'youtube.com' ou 'youtube'. Para PESQUISAR: busca='receita de bolo' e url='google' (ou 'youtube', 'amazon', 'mercado livre'). Use navegador só se o usuário citar um (chrome, edge, firefox).",
+    parameters: obj({ url: { type: 'STRING', description: "Endereço ou nome do site: 'youtube.com', 'https://...', 'gmail'" },
+      busca: { type: 'STRING', description: 'Texto a pesquisar no site (opcional)' },
+      navegador: { type: 'STRING', description: 'chrome | edge | firefox (opcional)' } }) },
+  { name: 'fechar_pasta',
+    description: 'Fecha janelas de pasta (Explorador de Arquivos). Sem nome: fecha a última pasta aberta. Com nome: fecha a janela daquela pasta. todas=true só se o usuário pedir para fechar todas.',
+    parameters: obj({ nome: { type: 'STRING', description: 'Nome da pasta a fechar (opcional)' }, todas: { type: 'BOOLEAN', description: 'true para fechar todas as janelas de pasta' } }) },
+  { name: 'fechar_programa', description: 'Fecha um programa aberto pelo nome (Chrome, Excel, Word, Bloco de Notas...). Pede educadamente; o programa ainda pergunta se quer salvar.',
+    parameters: obj({ nome: { type: 'STRING' } }, ['nome']) },
   { name: 'atualizar_lista', description: 'Refaz a lista de pastas e programas conhecidos (use se criou pastas novas).', parameters: obj() },
 ];
 
@@ -495,6 +666,9 @@ async function executarFerramenta(a, nome, args = {}) {
       case 'limpar_contexto': return a.limparContexto();
       case 'abrir_programa': return await a.abrirPrograma(args.nome || '');
       case 'controlar_pc': return a.controlarPc(args.acao || '', args.passos || 1);
+      case 'abrir_site': return await a.abrirSite(args.url || '', args.busca || '', args.navegador || '');
+      case 'fechar_pasta': return await a.fecharPasta(args.nome || '', !!args.todas);
+      case 'fechar_programa': return await a.fecharPrograma(args.nome || '');
       case 'atualizar_lista': return a.atualizarLista();
       default: return `Ferramenta desconhecida: ${nome}`;
     }
@@ -502,4 +676,4 @@ async function executarFerramenta(a, nome, args = {}) {
 }
 
 module.exports = { Assistente, CONFIG_PADRAO, FERRAMENTAS, ACOES, executarFerramenta, setAbridor, norm, pontuar, falaParaNumero, soDigitos,
-  eAdministrador, resolverAtalhos, pastasDesktop };
+  eAdministrador, resolverAtalhos, pastasDesktop, psArgs, setAbridorUrl, normalizarUrl };

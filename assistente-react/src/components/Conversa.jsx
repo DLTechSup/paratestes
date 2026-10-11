@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const EXEMPLOS = ['“Abra a pasta Lançamentos”', '“Abra a pasta Modare”', '“Pesquise sete cinco vinte e seis ponto vinte e cinco vinte e seis”', '“Volta” · “O que tem aqui?”', '“Abra o Chrome” · “Aumenta o volume”'];
+const EXEMPLOS = ['“Abra a pasta Lançamentos”', '“Abra a pasta Modare”', '“Pesquise sete cinco vinte e seis ponto vinte e cinco vinte e seis”', '“Volta” · “O que tem aqui?” · “Fecha essa pasta”', '“Abra o Chrome” · “Aumenta o volume” · “Abre o YouTube”', '“Pesquise receita de bolo no Google”'];
 
 export default function Conversa({ logs, onLimpar, nome }) {
   const fim = useRef(null);

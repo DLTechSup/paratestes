@@ -8,7 +8,9 @@ e modo **ouvir direto**. Roda como **administrador** para alcançar todas as pas
 > “**Luna**, abra a pasta Lançamentos” → abre e **fica** nela  
 > “Abra a pasta Modare” → entra em Lançamentos\Modare  
 > “Pesquise sete cinco vinte e seis ponto vinte e cinco vinte e seis” → abre a pasta `7526.2526` dentro da Modare  
-> “Volta” · “O que tem aqui?” · “Abra o Chrome” · “Aumenta o volume” · “Tchau”
+> “Volta” · “O que tem aqui?” · “Abra o Chrome” · “Aumenta o volume” · “Tchau”  
+> **Sites:** “Abre o YouTube” · “Acessa gmail.com no Chrome” · “Pesquisa receita de bolo no Google” (também YouTube, Amazon, Mercado Livre)  
+> **Fechar:** “Fecha essa pasta” (a última aberta) · “Fecha a pasta Modare” · “Fecha todas as pastas” · “Fecha o Chrome” (o programa ainda pergunta se quer salvar)
 
 ## Como funciona a palavra de ativação
 - **Palavra de ativação** (padrão): o assistente fica dormindo. O reconhecimento do nome roda **no seu PC, offline**

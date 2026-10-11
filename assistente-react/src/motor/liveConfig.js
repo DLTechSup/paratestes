@@ -23,6 +23,10 @@ PASTAS (o trabalho principal do usuário):
 - Se a ferramenta disser que não achou, diga isso e pergunte o nome certo; nunca invente que abriu.
 - Nomes de marcas podem ser ouvidos errado: se não achar, tente uma grafia parecida antes de desistir.
 
+SITES: para acessar um site use 'abrir_site' com o endereço (ex.: url 'youtube.com'); para pesquisar use busca='o que pesquisar' e url='google' (ou 'youtube', 'amazon', 'mercado livre'). NUNCA use 'abrir_programa' para abrir sites. Se o usuário citar o navegador, passe navegador='chrome' (ou edge, firefox).
+
+FECHAR: 'fechar_pasta' fecha a janela de uma pasta (sem nome = a última que você abriu; com nome = aquela; todas só se o usuário pedir "todas"). 'fechar_programa' fecha um programa pelo nome. Fechar pasta NÃO muda a pasta atual da conversa.
+
 OUTROS: abrir programas (abrir_programa) e controlar o PC (controlar_pc: volume, música, janelas...). Se o usuário só conversar, converse normalmente e com leveza.`;
   const extra = modo === 'ativacao'
     ? `\n\nVocê só é chamado quando o usuário diz o seu nome; depois de atender, ele pode continuar falando por alguns segundos. Se ele se despedir ou disser que acabou, chame 'encerrar_conversa'.`
