@@ -187,7 +187,7 @@ async def principal(args):
             print(f"⚠ Conexão caiu: {erro}")
             baixo = erro.lower()
             if "api key" in baixo or "permission" in baixo or "401" in baixo or "403" in baixo:
-                print("   Verifique a chave em config.json.")
+                print("   A chave foi recusada pelo Google. Apague o arquivo chave_api.txt (ao lado do programa) e abra de novo para colar uma chave válida.")
                 return
             if "1007" in baixo or "invalid_argument" in baixo or "invalid argument" in baixo:
                 com_ajustes = False  # algum ajuste fino não é aceito por esse modelo: tenta sem

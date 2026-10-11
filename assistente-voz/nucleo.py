@@ -62,36 +62,63 @@ def carregar_config() -> dict:
     return cfg
 
 
-def ler_chave_arquivo() -> str:
-    """Primeira linha útil de chave_api.txt (ignora linhas em branco e as que começam com #)."""
-    try:
-        for linha in ARQ_CHAVE.read_text(encoding="utf-8-sig").splitlines():
-            linha = linha.strip().strip('"\'')
-            if linha and not linha.startswith("#") and "COLE" not in linha.upper():
-                return linha
-    except OSError:
-        pass
+_PADRAO_CHAVE = re.compile(r"AIza[0-9A-Za-z_\-]{30,}")
+
+
+def extrair_chave(texto: str) -> str:
+    """Acha a chave em qualquer lugar do texto (mesmo colada numa linha com #, entre aspas ou com espaços)."""
+    m = _PADRAO_CHAVE.search(texto or "")
+    if m:
+        return m.group(0)
+    for linha in (texto or "").splitlines():  # chaves em outro formato: 1ª linha que não é comentário
+        linha = linha.strip().strip("\"'")
+        if linha and not linha.startswith("#") and " " not in linha and len(linha) >= 20:
+            return linha
     return ""
 
 
-def pedir_chave() -> str:
-    """Cria chave_api.txt, abre no Bloco de Notas e espera o usuário colar a chave."""
-    if not ARQ_CHAVE.exists():
-        ARQ_CHAVE.write_text(MODELO_CHAVE, encoding="utf-8")
-    print(f"\n>>> Cole sua chave do Gemini no arquivo:\n    {ARQ_CHAVE}")
+def ler_chave_arquivo() -> str:
     try:
-        if SISTEMA == "Windows":
-            subprocess.Popen(["notepad.exe", str(ARQ_CHAVE)])
-        else:
-            _abrir_so(str(ARQ_CHAVE))
-    except Exception:
-        pass
+        return extrair_chave(ARQ_CHAVE.read_text(encoding="utf-8-sig", errors="ignore"))
+    except OSError:
+        return ""
+
+
+def salvar_chave(chave: str):
+    ARQ_CHAVE.write_text(MODELO_CHAVE + chave + "\n", encoding="utf-8")
+
+
+def pedir_chave() -> str:
+    """Pede a chave direto na janela (cole com botão direito do mouse + ENTER). Vazio = abre o Bloco de Notas."""
+    print("\n=== PRIMEIRA VEZ: falta a chave do Gemini ===")
+    print("1) Copie sua chave (começa com AIza...)")
+    print("2) Clique com o BOTÃO DIREITO do mouse aqui nesta janela (isso cola) e aperte ENTER.")
+    print(f"   (Ou só aperte ENTER para colar pelo Bloco de Notas no arquivo: {ARQ_CHAVE})")
     while True:
-        input("Depois de colar e SALVAR, volte aqui e aperte ENTER... ")
-        chave = ler_chave_arquivo()
+        try:
+            digitado = input("\nChave: ").strip()
+        except EOFError:
+            return ""
+        chave = extrair_chave(digitado) if digitado else ""
         if chave:
+            salvar_chave(chave)
+            print("Chave salva em", ARQ_CHAVE)
             return chave
-        print("Ainda não encontrei a chave no arquivo. Cole, salve (Ctrl+S) e tente de novo.")
+        if not digitado:
+            if not ARQ_CHAVE.exists():
+                ARQ_CHAVE.write_text(MODELO_CHAVE, encoding="utf-8")
+            try:
+                subprocess.Popen(["notepad.exe", str(ARQ_CHAVE)]) if SISTEMA == "Windows" else _abrir_so(str(ARQ_CHAVE))
+            except Exception:
+                pass
+            input("Cole a chave no Bloco de Notas, SALVE (Ctrl+S) e aperte ENTER aqui... ")
+            chave = ler_chave_arquivo()
+            if chave:
+                print("Chave lida de", ARQ_CHAVE)
+                return chave
+            print(f"Não achei nenhuma chave em {ARQ_CHAVE}. Confira se salvou esse mesmo arquivo.")
+        else:
+            print("Isso não parece uma chave do Gemini (ela começa com AIza e é longa). Tente de novo.")
 
 
 # ───────────────────────── texto ─────────────────────────

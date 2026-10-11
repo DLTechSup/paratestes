@@ -14,9 +14,9 @@ Depois você pode pedir outra referência na mesma marca, "o que tem aqui?", "vo
 ## Instalar (Windows)
 1. Instale o **Python 3.11 ou 3.12** (python.org, marque *Add Python to PATH*).
 2. Crie a chave em https://aistudio.google.com/apikey (use a conta que preferir; **não ative cobrança**).
-3. Dê dois cliques em **`INICIAR.bat`** (ele pede permissão de administrador). Na 1ª vez instala tudo e abre o arquivo
-   **`chave_api.txt`** no Bloco de Notas: **cole sua chave ali, salve (Ctrl+S) e volte à janela apertando ENTER**.
-   Também pode criar o arquivo antes e colar a chave nele. A chave fica só no seu PC.
+3. Dê dois cliques em **`INICIAR.bat`** (ele pede permissão de administrador). Na 1ª vez, a janela preta pede a chave:
+   copie a chave (começa com `AIza...`), **clique com o botão direito do mouse na janela** (isso cola) e aperte **ENTER**.
+   Ela é salva em `chave_api.txt`, ao lado do programa, e nunca mais é pedida. A chave fica só no seu PC.
 4. Fale. Com **fones de ouvido**, ponha `"fones_de_ouvido": true` em `config.json` para poder interrompê-lo falando por cima.
    Sem fones, o microfone pausa enquanto ele fala (evita ouvir a própria voz).
 
