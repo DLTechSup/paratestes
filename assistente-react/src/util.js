@@ -25,3 +25,15 @@ export function nivelUso(uso, limite) {
   }
   return { nivel: 'ok', pct: 0, texto: '' };
 }
+
+/**
+ * Limpa e valida a chave colada. Aceita os dois formatos do Google: antigo (AIza…) e novo (AQ.…, com ponto).
+ * Devolve a chave limpa ou '' se não parecer uma chave (curta demais, ou com cara de frase).
+ */
+export function limparChave(texto) {
+  let k = String(texto ?? '').trim();
+  k = k.replace(/^[A-Z][A-Z0-9_]*\s*=\s*/, '') // GEMINI_API_KEY=... (copiado de um arquivo .env)
+    .replace(/^(bearer|key|api[_ -]?key)\s*[:=]?\s*/i, '').replace(/^["'`]+|["'`]+$/g, '');
+  if (/\s/.test(k)) k = k.replace(/\s+/g, ''); // quebras de linha/espaços que vieram junto na colagem
+  return /^[A-Za-z0-9._~+/=-]{20,}$/.test(k) ? k : '';
+}

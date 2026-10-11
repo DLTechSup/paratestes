@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api.js';
 import { IcChave, IcOlho } from './Icones.jsx';
+import { limparChave } from '../util.js';
 
 export default function TelaChave({ aviso, onSalvar, onCancelar }) {
   const [valor, setValor] = useState('');
@@ -8,8 +9,8 @@ export default function TelaChave({ aviso, onSalvar, onCancelar }) {
   const [msg, setMsg] = useState(aviso || '');
   const colar = async () => { try { setValor((await navigator.clipboard.readText()).trim()); setMsg(''); } catch { setMsg('Não consegui ler a área de transferência. Clique no campo e use Ctrl+V.'); } };
   const salvar = () => {
-    const k = valor.trim().replace(/^["']|["']$/g, '');
-    if (!/^[A-Za-z0-9_-]{20,}$/.test(k)) { setMsg('Isso não parece uma chave do Gemini. Ela começa com AIza e não tem espaços.'); return; }
+    const k = limparChave(valor);
+    if (!k) { setMsg('Isso não parece uma chave do Gemini. Ela é uma sequência longa, sem espaços (começa com AIza… ou AQ.…). Copie a chave inteira.'); return; }
     onSalvar(k);
   };
   return (

@@ -28,7 +28,7 @@ e modo **ouvir direto**. Roda como **administrador** para alcançar todas as pas
    - `AssistenteDeVoz-portatil.exe` — roda sem instalar.
 4. Ao abrir, o Windows pergunta sobre administrador: **Sim**.
 5. Na 1ª vez o programa pede a **chave do Gemini** dentro da janela: cole e clique em **Salvar e começar**
-   (grátis em https://aistudio.google.com/apikey). Ela fica salva criptografada só neste computador.
+   (grátis em https://aistudio.google.com/apikey; vale o formato antigo `AIza…` e o novo `AQ.…`). Ela fica salva criptografada só neste computador.
 
 Para testar sem gerar o `.exe`: **`INICIAR.bat`**.
 
