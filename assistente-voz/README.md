@@ -14,11 +14,22 @@ Depois você pode pedir outra referência na mesma marca, "o que tem aqui?", "vo
 ## Instalar (Windows)
 1. Instale o **Python 3.11 ou 3.12** (python.org, marque *Add Python to PATH*).
 2. Crie a chave em https://aistudio.google.com/apikey (use a conta que preferir; **não ative cobrança**).
-3. Dê dois cliques em **`INICIAR.bat`**. Na 1ª vez ele instala tudo e pede a chave (fica só em `config.json`, no seu PC).
+3. Dê dois cliques em **`INICIAR.bat`** (ele pede permissão de administrador). Na 1ª vez instala tudo e abre o arquivo
+   **`chave_api.txt`** no Bloco de Notas: **cole sua chave ali, salve (Ctrl+S) e volte à janela apertando ENTER**.
+   Também pode criar o arquivo antes e colar a chave nele. A chave fica só no seu PC.
 4. Fale. Com **fones de ouvido**, ponha `"fones_de_ouvido": true` em `config.json` para poder interrompê-lo falando por cima.
    Sem fones, o microfone pausa enquanto ele fala (evita ouvir a própria voz).
 
 Microfone errado? `python voz_gemini.py --listar-mic` mostra os números; use `--mic N --saida M`.
+
+## Gerar o programa executável (.exe) — roda como administrador
+1. Dê dois cliques em **`CRIAR_EXE.bat`** (precisa de Python 3.11/3.12 e internet; leva alguns minutos).
+2. Abra **`dist\AssistenteVoz\AssistenteVoz.exe`**. O Windows pede permissão de administrador: clique em **Sim**.
+3. Na pasta `dist\AssistenteVoz` ficam o `chave_api.txt` (cole sua chave) e o `config.json`. Copie a pasta inteira
+   para onde quiser e crie um atalho do `.exe` na Área de Trabalho.
+Como administrador, ele enxerga as Áreas de Trabalho de todos os perfis. Observações do Windows: drives de rede
+mapeados (Z:) podem não aparecer para programas como administrador — use o caminho de rede (`\\servidor\pasta`)
+em `raizes`/`atalhos`; e programas abertos por ele também abrem como administrador.
 
 ## Configurar suas pastas (`config.json`, criado na 1ª execução)
 - Seus **atalhos da Área de Trabalho** (`.lnk`) já são reconhecidos sozinhos, inclusive atalhos dentro de pastas.

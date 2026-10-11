@@ -2,3 +2,4 @@ config.json
 .instalado
 __pycache__/
 *.pyc
+chave_api.txt

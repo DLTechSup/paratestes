@@ -9,7 +9,6 @@ A conversa (ouvir + entender + falar) roda no Gemini Live; as ações rodam LOCA
 """
 import argparse
 import asyncio
-import json
 import queue
 import sys
 import time
@@ -166,15 +165,10 @@ async def sessao(cfg: dict, assistente: nucleo.Assistente, mic, saida, com_ajust
 async def principal(args):
     cfg = nucleo.carregar_config()
     if not cfg.get("gemini_api_key"):
-        chave = input("Cole sua chave do Gemini (https://aistudio.google.com/apikey): ").strip()
-        if not chave:
-            sys.exit("Sem chave não dá para usar a voz.")
-        cfg["gemini_api_key"] = chave
-        arq = nucleo.ARQ_CONFIG
-        dados = json.loads(arq.read_text(encoding="utf-8-sig")) if arq.exists() else {}
-        dados["gemini_api_key"] = chave
-        arq.write_text(json.dumps(dados, indent=2, ensure_ascii=False), encoding="utf-8")
+        cfg["gemini_api_key"] = nucleo.pedir_chave()
     assistente = nucleo.Assistente(cfg)
+    print("Executando como ADMINISTRADOR ✔" if nucleo.e_administrador() else
+          "⚠ Sem permissão de administrador (algumas pastas podem não abrir). Use o .exe ou o INICIAR.bat.")
     print("Carregando pastas e atalhos...")
     t0 = time.time()
     await asyncio.to_thread(assistente._catalogo_ok)

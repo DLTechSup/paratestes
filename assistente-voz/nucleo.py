@@ -9,14 +9,20 @@ import os
 import platform
 import re
 import subprocess
+import sys
 import tempfile
 import time
 import unicodedata
 from pathlib import Path
 
 SISTEMA = platform.system()  # Windows | Darwin | Linux
-AQUI = Path(__file__).resolve().parent
+# Dentro do .exe (PyInstaller) a config fica AO LADO do executável, não na pasta temporária.
+AQUI = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 ARQ_CONFIG = AQUI / "config.json"
+ARQ_CHAVE = AQUI / "chave_api.txt"
+MODELO_CHAVE = ("# Cole sua chave do Gemini na linha abaixo (apague este texto), salve e feche o Bloco de Notas.\n"
+                "# Chave gratuita: https://aistudio.google.com/apikey\n"
+                "# Esta linha não é lida (começa com #). A chave fica só neste computador.\n\n")
 
 CONFIG_PADRAO = {
     # "nome falado": "caminho da pasta"  (ou de um atalho .lnk). Ex.: "lançamentos": "D:/Lançamentos"
@@ -49,9 +55,43 @@ def carregar_config() -> dict:
             print(f"[aviso] config.json inválido ({e}); usando padrão.")
     else:
         ARQ_CONFIG.write_text(json.dumps(CONFIG_PADRAO, indent=2, ensure_ascii=False), encoding="utf-8")
+    if not cfg.get("gemini_api_key"):
+        cfg["gemini_api_key"] = ler_chave_arquivo()
     if os.environ.get("GEMINI_API_KEY"):
         cfg["gemini_api_key"] = os.environ["GEMINI_API_KEY"]
     return cfg
+
+
+def ler_chave_arquivo() -> str:
+    """Primeira linha útil de chave_api.txt (ignora linhas em branco e as que começam com #)."""
+    try:
+        for linha in ARQ_CHAVE.read_text(encoding="utf-8-sig").splitlines():
+            linha = linha.strip().strip('"\'')
+            if linha and not linha.startswith("#") and "COLE" not in linha.upper():
+                return linha
+    except OSError:
+        pass
+    return ""
+
+
+def pedir_chave() -> str:
+    """Cria chave_api.txt, abre no Bloco de Notas e espera o usuário colar a chave."""
+    if not ARQ_CHAVE.exists():
+        ARQ_CHAVE.write_text(MODELO_CHAVE, encoding="utf-8")
+    print(f"\n>>> Cole sua chave do Gemini no arquivo:\n    {ARQ_CHAVE}")
+    try:
+        if SISTEMA == "Windows":
+            subprocess.Popen(["notepad.exe", str(ARQ_CHAVE)])
+        else:
+            _abrir_so(str(ARQ_CHAVE))
+    except Exception:
+        pass
+    while True:
+        input("Depois de colar e SALVAR, volte aqui e aperte ENTER... ")
+        chave = ler_chave_arquivo()
+        if chave:
+            return chave
+        print("Ainda não encontrei a chave no arquivo. Cole, salve (Ctrl+S) e tente de novo.")
 
 
 # ───────────────────────── texto ─────────────────────────
@@ -157,11 +197,28 @@ def pastas_desktop() -> list:
     for var in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer"):
         if os.environ.get(var):
             cand += [Path(os.environ[var]) / "Desktop", Path(os.environ[var]) / "Área de Trabalho"]
+    if SISTEMA == "Windows":  # como administrador (outra conta) o "home" é do admin: inclui as Áreas de Trabalho de todos os perfis
+        usuarios = Path(os.environ.get("SystemDrive", "C:") + "/Users")
+        try:
+            for u in usuarios.iterdir():
+                if u.is_dir() and u.name not in ("Public", "Default", "Default User", "All Users"):
+                    cand += [u / "Desktop", u / "Área de Trabalho", u / "OneDrive" / "Desktop",
+                             u / "OneDrive" / "Área de Trabalho"]
+        except OSError:
+            pass
     vistos, saida = set(), []
     for c in cand:
         if c.is_dir() and str(c) not in vistos:
             vistos.add(str(c)); saida.append(c)
     return saida
+
+
+def e_administrador() -> bool:
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin()) if SISTEMA == "Windows" else os.geteuid() == 0
+    except Exception:
+        return False
 
 
 def _abrir_so(caminho: str):
