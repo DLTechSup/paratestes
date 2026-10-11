@@ -1,0 +1,9 @@
+# Modo local (sem API, sem internet depois da 1ª execução)
+sounddevice>=0.4,<1
+numpy>=1.24,<3
+vosk
+pyttsx3
+pyautogui
+pyperclip
+psutil
+send2trash

@@ -1,5 +1,28 @@
 # Assistente V2 (Mark-LV) — guia rápido em português
 
+## ▶ MODO LOCAL (sem API, sem custo) — recomendado
+Usa as partes locais do Mark-LV: reconhecimento de voz offline (**Vosk**), abertura de
+programas (`open_app`), volume/brilho (`computer_settings`) e um índice local de pastas
+e subpastas. **Não usa Gemini nem chave de API.**
+
+1. Instale o **Python 3.11 ou 3.12** (marque *Add Python to PATH*).
+2. Dê dois cliques em **`INICIAR-LOCAL.bat`**. A 1ª vez instala os pacotes e baixa o
+   modelo de voz em português (~50 MB, precisa de internet **só essa vez**).
+3. Fale: "abrir chrome", "abrir pasta downloads", "abrir pasta relatórios" (acha subpastas),
+   "volume mais", "silenciar", "buscar contrato", "atualizar índice", "sair".
+   Pode começar com "Jarvis, ...".
+- Escolher o microfone: `python modo_local.py --listar-mic` e depois `python modo_local.py --mic N`.
+- Sem microfone/para testar: `python modo_local.py --texto`. Sem voz de resposta: `--sem-fala`.
+- Pastas varridas e apelidos: `config.json` (criado na 1ª execução). Para varrer o disco
+  todo: `"raizes": ["C:/"]`.
+
+Limitação honesta: o Vosk entende comandos curtos bem, mas não conversa como o Gemini.
+Funciona com frases que começam por "abrir/abra...".
+
+---
+
+## Modo original do Mark-LV (usa Gemini, precisa de chave)
+
 Esta pasta é uma cópia do [Mark-LV](https://github.com/FatihMakes/Mark-LV)
 (© FatihMakes, licença CC BY-NC 4.0 — uso **não comercial**, mantenha o arquivo `LICENSE`).
 
