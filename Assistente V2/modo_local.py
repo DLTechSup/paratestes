@@ -73,6 +73,57 @@ ATIVACAO = re.compile(r"^(jarvis|assistente|computador)[ ,]+", re.I)
 ABRIR = re.compile(r"^(abrir|abra|abre|iniciar|inicie|executar|execute|rodar|va para|ir para|mostrar|mostre|open)\b", re.I)
 
 
+ESTADO = {"atual": None}  # pasta onde você "está" (navegação por níveis)
+PROF_MAX_DENTRO = 4
+
+
+def procurar_dentro(base: str, termo: str):
+    """Procura pastas/arquivos DENTRO de `base` (ao vivo, sem depender do índice).
+    Prefere o que está mais perto: filhos diretos antes de netos."""
+    import os
+    q = lite.normalizar(termo)
+    if not q:
+        return None
+    melhor, melhor_p = None, 0
+    nivel = [base]
+    for prof in range(1, PROF_MAX_DENTRO + 1):
+        proximo = []
+        for pasta in nivel:
+            try:
+                entradas = list(os.scandir(pasta))
+            except OSError:
+                continue
+            for e in entradas:
+                if e.name.startswith("."):
+                    continue
+                eh_pasta = e.is_dir(follow_symlinks=False)
+                item = {"nome": e.name, "caminho": e.path, "norm": lite.normalizar(Path(e.name).stem if not eh_pasta else e.name),
+                        "tipo": "pasta" if eh_pasta else "arquivo"}
+                p = lite.pontuar(q, item) - (prof - 1) * 8 + (2 if eh_pasta else 0)
+                if p > melhor_p and lite.pontuar(q, item) > 0:
+                    melhor, melhor_p = item, p
+                if eh_pasta and e.name.lower() not in ("node_modules", "__pycache__"):
+                    proximo.append(e.path)
+        if melhor and melhor_p >= 60 - (prof - 1) * 8:
+            break  # achou algo bom num nível mais raso
+        nivel = proximo
+    return melhor
+
+
+def navegar(termo: str, voz: "Voz") -> bool:
+    """Tenta abrir `termo` dentro da pasta atual. True se resolveu."""
+    base = ESTADO["atual"]
+    if not base:
+        return False
+    item = procurar_dentro(base, termo)
+    if not item:
+        return False
+    voz.dizer(lite.abrir_item(item))
+    if item["tipo"] == "pasta":
+        ESTADO["atual"] = item["caminho"]
+    return True
+
+
 def abrir_com_markslv(nome: str) -> str:
     """Último recurso: o lançador do Mark-LV (apelidos de apps por sistema)."""
     try:
@@ -121,11 +172,47 @@ def executar(cfg: dict, indice: dict, fala: str, voz: Voz) -> bool:
             voz.dizer(f"Não consegui ajustar: {e}")
         return True
 
-    # abrir pasta / subpasta / programa
+    # navegação por níveis: voltar / onde estou / o que tem aqui / começar de novo
+    atual = ESTADO["atual"]
+    if n in ("voltar", "volta", "subir", "pasta anterior"):
+        if atual and Path(atual).parent != Path(atual):
+            ESTADO["atual"] = str(Path(atual).parent)
+            voz.dizer(lite.abrir_item({"tipo": "pasta", "nome": Path(ESTADO["atual"]).name, "caminho": ESTADO["atual"]}))
+        else:
+            voz.dizer("Não estou em nenhuma pasta.")
+        return True
+    if n in ("onde estou", "pasta atual", "qual pasta"):
+        voz.dizer(f"Pasta atual: {Path(atual).name}" if atual else "Nenhuma pasta aberta.")
+        return True
+    if n in ("limpar", "recomecar", "recomeçar", "reiniciar", "nova busca", "inicio", "início"):
+        ESTADO["atual"] = None
+        voz.dizer("Certo, começando do zero.")
+        return True
+    if n in ("o que tem aqui", "listar", "listar pastas", "opcoes", "opções", "mostrar opcoes"):
+        if atual:
+            try:
+                nomes = sorted(e.name for e in __import__("os").scandir(atual) if not e.name.startswith("."))
+                voz.dizer("Aqui tem: " + ", ".join(nomes[:12]) + ("..." if len(nomes) > 12 else ""))
+            except OSError as e:
+                voz.dizer(f"Não consegui listar: {e}")
+        else:
+            voz.dizer("Nenhuma pasta aberta.")
+        return True
+
+    # com uma pasta aberta, falar só o nome ("Nike", "referência") entra nela
+    pedido = re.sub(r"^(abrir|abra|abre|entrar em|entre em|ir para|va para|mostrar|mostre)\s+", "", texto, flags=re.I)
+    pedido = re.sub(r"^(a |o |as |os )?(pasta|marca|arquivo|diretorio|diretório)\s+(da |de |do )?", "", pedido, flags=re.I).strip()
+    forca_global = bool(re.match(r"^(abrir|abra|abre)\s+(pasta\s+)?(do\s+inicio|raiz)", texto, re.I))
+    if atual and not forca_global and pedido and navegar(pedido, voz):
+        return True
+
+    # abrir pasta / subpasta / programa (busca global)
     if ABRIR.match(texto):
         msg, item = lite.interpretar(cfg, indice, texto)
         if item:
             voz.dizer(msg)
+            if item["tipo"] == "pasta":
+                ESTADO["atual"] = item["caminho"]
         else:
             alvo = lite.re.sub(lite.VERBOS, "", texto, flags=re.I).strip()
             alvo = re.sub(r"^(o|a|os|as|programa|aplicativo|app)\s+", "", alvo, flags=re.I)

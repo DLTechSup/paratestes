@@ -16,7 +16,17 @@ e subpastas. **Não usa Gemini nem chave de API.**
 - Pastas varridas e apelidos: `config.json` (criado na 1ª execução). Para varrer o disco
   todo: `"raizes": ["C:/"]`.
 
-Limitação honesta: o Vosk entende comandos curtos bem, mas não conversa como o Gemini.
+### Fluxo de trabalho (navegação por níveis)
+O assistente lembra em qual pasta você está e procura **dentro dela**:
+1. "abrir pasta Lançamentos"
+2. "Nike" (só o nome da marca) → abre `Lançamentos\Nike`
+3. "Referência" → abre `Lançamentos\Nike\Referência`
+Outros comandos: "voltar" (sobe um nível), "o que tem aqui" (lista o conteúdo),
+"onde estou", "limpar" (começa do zero). Se o nome não existir na pasta atual,
+procura no computador todo. A busca dentro da pasta é ao vivo, então pastas
+novas de marcas aparecem sem precisar atualizar o índice.
+
+Limitação honesta: o Vosk entende comandos curtos bem, mas não conversa como o Gemini. Nomes de marcas (palavras estranhas) podem ser ouvidos errado; a busca aproximada ajuda, e em último caso use `--texto` ou o comando "o que tem aqui".
 Funciona com frases que começam por "abrir/abra...".
 
 ---
