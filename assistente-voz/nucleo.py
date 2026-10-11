@@ -43,6 +43,8 @@ CONFIG_PADRAO = {
     "voz": "",                      # nome de voz do Gemini (vazio = padrão)
     "fones_de_ouvido": False,       # False: o microfone pausa enquanto ele fala (evita eco com caixas de som)
     "idioma": "pt-BR",
+    "mic": None,                    # número do microfone (a janela salva sua escolha)
+    "saida": None,                  # número do alto-falante/fone
 }
 
 
@@ -60,6 +62,16 @@ def carregar_config() -> dict:
     if os.environ.get("GEMINI_API_KEY"):
         cfg["gemini_api_key"] = os.environ["GEMINI_API_KEY"]
     return cfg
+
+
+def salvar_config(**mudancas):
+    """Grava preferências (microfone, fones...) em config.json sem apagar o resto."""
+    try:
+        dados = json.loads(ARQ_CONFIG.read_text(encoding="utf-8-sig")) if ARQ_CONFIG.exists() else {}
+    except Exception:
+        dados = {}
+    dados.update(mudancas)
+    ARQ_CONFIG.write_text(json.dumps(dados, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 _PADRAO_CHAVE = re.compile(r"AIza[0-9A-Za-z_\-]{30,}")

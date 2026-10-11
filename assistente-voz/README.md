@@ -14,18 +14,16 @@ Depois você pode pedir outra referência na mesma marca, "o que tem aqui?", "vo
 ## Instalar (Windows)
 1. Instale o **Python 3.11 ou 3.12** (python.org, marque *Add Python to PATH*).
 2. Crie a chave em https://aistudio.google.com/apikey (use a conta que preferir; **não ative cobrança**).
-3. Dê dois cliques em **`INICIAR.bat`** (ele pede permissão de administrador). Na 1ª vez, a janela preta pede a chave:
-   copie a chave (começa com `AIza...`), **clique com o botão direito do mouse na janela** (isso cola) e aperte **ENTER**.
-   Ela é salva em `chave_api.txt`, ao lado do programa, e nunca mais é pedida. A chave fica só no seu PC.
-4. Fale. Com **fones de ouvido**, ponha `"fones_de_ouvido": true` em `config.json` para poder interrompê-lo falando por cima.
-   Sem fones, o microfone pausa enquanto ele fala (evita ouvir a própria voz).
-
-Microfone errado? `python voz_gemini.py --listar-mic` mostra os números; use `--mic N --saida M`.
+3. Dê dois cliques em **`INICIAR.bat`** (ele pede permissão de administrador). Abre a janela do programa.
+   Na 1ª vez ela pede a chave: **cole no campo (botão "Colar") e clique em "Salvar e começar"**. Pronto: ele já começa a ouvir.
+   A chave fica salva só no seu PC (`chave_api.txt`); "Trocar chave" muda quando quiser.
+4. Fale. Na janela escolha microfone e saída de som, e marque **fones de ouvido** se estiver usando (aí dá para interrompê-lo
+   falando por cima). Sem fones, o microfone pausa enquanto ele fala (evita ouvir a própria voz). A escolha fica salva.
 
 ## Gerar o programa executável (.exe) — roda como administrador
 1. Dê dois cliques em **`CRIAR_EXE.bat`** (precisa de Python 3.11/3.12 e internet; leva alguns minutos).
 2. Abra **`dist\AssistenteVoz\AssistenteVoz.exe`**. O Windows pede permissão de administrador: clique em **Sim**.
-3. Na pasta `dist\AssistenteVoz` ficam o `chave_api.txt` (cole sua chave) e o `config.json`. Copie a pasta inteira
+3. Cole a chave dentro do programa (1ª vez). Na pasta `dist\AssistenteVoz` ficam o `chave_api.txt` e o `config.json`. Copie a pasta inteira
    para onde quiser e crie um atalho do `.exe` na Área de Trabalho.
 Como administrador, ele enxerga as Áreas de Trabalho de todos os perfis. Observações do Windows: drives de rede
 mapeados (Z:) podem não aparecer para programas como administrador — use o caminho de rede (`\\servidor\pasta`)

@@ -103,7 +103,11 @@ def montar_config(cfg: dict, com_ajustes: bool = True):
     return types.LiveConnectConfig(**base)
 
 
-async def sessao(cfg: dict, assistente: nucleo.Assistente, mic, saida, com_ajustes: bool):
+class Parar(Exception):
+    pass
+
+
+async def sessao(cfg: dict, assistente: nucleo.Assistente, mic, saida, com_ajustes: bool, log=print, parar=None):
     import sounddevice as sd
     from google import genai
     from google.genai import types
@@ -124,7 +128,7 @@ async def sessao(cfg: dict, assistente: nucleo.Assistente, mic, saida, com_ajust
             pass
 
     async with client.aio.live.connect(model=cfg["modelo_voz"], config=config) as session:
-        print("🎤 Conectado. Pode falar!  (Ctrl+C para sair)")
+        log("🎤 Conectado. Pode falar!")
 
         async def enviar():
             while True:
@@ -142,16 +146,16 @@ async def sessao(cfg: dict, assistente: nucleo.Assistente, mic, saida, com_ajust
                             tocador.interromper()
                         it = getattr(sc, "input_transcription", None)
                         if it and it.text:
-                            print(f"   você: {it.text}")
+                            log(f"você: {it.text}")
                         ot = getattr(sc, "output_transcription", None)
                         if ot and ot.text:
-                            print(f"   🤖 {ot.text}")
+                            log(f"🤖 {ot.text}", fim="")
                     if r.tool_call:
                         respostas = []
                         for fc in r.tool_call.function_calls:
                             t0 = time.time()
                             res = await asyncio.to_thread(nucleo.executar_ferramenta, assistente, fc.name, dict(fc.args or {}))
-                            print(f"   ⚙ {fc.name}({dict(fc.args or {})}) → {res}  [{time.time() - t0:.2f}s]")
+                            log(f"⚙ {fc.name}({dict(fc.args or {})}) → {res}  [{time.time() - t0:.2f}s]")
                             respostas.append(types.FunctionResponse(id=fc.id, name=fc.name, response={"result": res}))
                         await session.send_tool_response(function_responses=respostas)
 
@@ -160,6 +164,47 @@ async def sessao(cfg: dict, assistente: nucleo.Assistente, mic, saida, com_ajust
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(enviar())
                 tg.create_task(receber())
+                if parar is not None:
+                    async def vigiar():
+                        while not parar.is_set():
+                            await asyncio.sleep(0.2)
+                        raise Parar()
+                    tg.create_task(vigiar())
+
+
+def _log_console(msg, fim="\n"):
+    print(msg, end=fim, flush=True)
+
+
+async def rodar(cfg: dict, assistente: nucleo.Assistente, mic=None, saida=None, log=_log_console, parar=None):
+    """Mantém a conversa de voz até `parar` ser acionado. Devolve 'chave_invalida' se o Google recusar a chave."""
+    com_ajustes, falhas = True, 0
+    while not (parar and parar.is_set()):
+        try:
+            await sessao(cfg, assistente, mic, saida, com_ajustes, log, parar)
+            falhas = 0
+        except KeyboardInterrupt:
+            return ""
+        except BaseException as eg:  # noqa: BLE001 (inclui ExceptionGroup do TaskGroup)
+            lista = getattr(eg, "exceptions", None) or [eg]
+            if parar and parar.is_set() or any(isinstance(e, Parar) for e in lista):
+                return ""
+            if isinstance(eg, (asyncio.CancelledError, SystemExit)):
+                raise
+            erro = "; ".join(str(e) for e in lista)
+            baixo = erro.lower()
+            log(f"⚠ Conexão caiu: {erro[:300]}")
+            if "api key" in baixo or "permission" in baixo or "401" in baixo or "403" in baixo or "api_key_invalid" in baixo:
+                return "chave_invalida"
+            if "portaudio" in baixo or "querying device" in baixo or "no default" in baixo or "invalid device" in baixo or "invalid number of channels" in baixo:
+                log("   Problema com o microfone/alto-falante. Escolha outro na lista e inicie de novo.")
+                return "audio"
+            if "1007" in baixo or "invalid_argument" in baixo or "invalid argument" in baixo:
+                com_ajustes = False  # algum ajuste fino não é aceito por esse modelo: tenta sem
+                log("   (tentando sem os ajustes finos)")
+            falhas += 1
+            await asyncio.sleep(min(2 * falhas, 10))
+    return ""
 
 
 async def principal(args):
@@ -168,32 +213,12 @@ async def principal(args):
         cfg["gemini_api_key"] = nucleo.pedir_chave()
     assistente = nucleo.Assistente(cfg)
     print("Executando como ADMINISTRADOR ✔" if nucleo.e_administrador() else
-          "⚠ Sem permissão de administrador (algumas pastas podem não abrir). Use o .exe ou o INICIAR.bat.")
+          "⚠ Sem permissão de administrador (algumas pastas podem não abrir).")
     print("Carregando pastas e atalhos...")
-    t0 = time.time()
     await asyncio.to_thread(assistente._catalogo_ok)
-    print(f"Pronto: {len(assistente._catalogo)} pastas conhecidas ({time.time() - t0:.1f}s).")
-
-    com_ajustes, falhas = True, 0
-    while True:
-        try:
-            await sessao(cfg, assistente, args.mic, args.saida, com_ajustes)
-            falhas = 0
-        except KeyboardInterrupt:
-            return
-        except Exception as eg:
-            lista = getattr(eg, "exceptions", None) or [eg]
-            erro = "; ".join(str(e) for e in lista)
-            print(f"⚠ Conexão caiu: {erro}")
-            baixo = erro.lower()
-            if "api key" in baixo or "permission" in baixo or "401" in baixo or "403" in baixo:
-                print("   A chave foi recusada pelo Google. Apague o arquivo chave_api.txt (ao lado do programa) e abra de novo para colar uma chave válida.")
-                return
-            if "1007" in baixo or "invalid_argument" in baixo or "invalid argument" in baixo:
-                com_ajustes = False  # algum ajuste fino não é aceito por esse modelo: tenta sem
-                print("   (tentando sem os ajustes finos)")
-            falhas += 1
-            await asyncio.sleep(min(2 * falhas, 10))
+    print(f"Pronto: {len(assistente._catalogo)} pastas conhecidas.")
+    if await rodar(cfg, assistente, args.mic, args.saida) == "chave_invalida":
+        print("A chave foi recusada pelo Google. Apague chave_api.txt e abra de novo.")
 
 
 def main():
