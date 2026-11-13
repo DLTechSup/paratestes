@@ -12,7 +12,7 @@
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && cross-env NOTEDECK_DEV=1 electron .\"",
     "build": "vite build",
     "start": "npm run build && electron .",
-    "dist": "npm run build && electron-builder --win nsis",
+    "dist": "npm run build && electron-builder --win nsis --publish never",
     "dist:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {
