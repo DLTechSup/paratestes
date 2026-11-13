@@ -19,3 +19,28 @@ export const FONTS = ['Segoe UI', 'Arial', 'Calibri', 'Verdana', 'Tahoma', 'Geor
 export const SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 40];
 
 export const fmtDate = (t) => (t ? new Date(t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+
+// Preto ou branco, o que ficar mais legível sobre a cor de fundo dada (hex, rgb(...) ou nome CSS).
+export function corDeContraste(fundo) {
+  const rgb = corParaRgb(fundo);
+  if (!rgb) return '#1a1a1a';
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const luminancia = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminancia > 0.55 ? '#1a1a1a' : '#f5f5f5';
+}
+
+function corParaRgb(cor) {
+  if (!cor) return null;
+  const hex = cor.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const rgb = cor.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
+  return null;
+}

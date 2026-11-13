@@ -11,11 +11,33 @@ import { Plus, Search, GripVertical, Square, Pin, PinOff, Palette, Type, MoreHor
 import Toolbar from './Toolbar.jsx';
 import FindBar from './FindBar.jsx';
 import { SearchExtension } from '../search.js';
-import { PALETTE } from '../palette.js';
+import { PALETTE, corDeContraste } from '../palette.js';
+import { getStyleProperty } from '@tiptap/core';
 
 // inclusive:false => ao digitar logo após um trecho colorido/marcado, o texto novo NÃO herda a cor.
 const StyleMark = TextStyle.extend({ inclusive: false });
-const HighlightMark = Highlight.configure({ multicolor: true }).extend({ inclusive: false });
+// A cor do texto marcado se ajusta sozinha (claro/escuro) conforme a cor do marca-texto, para
+// continuar legível com qualquer cor escolhida. Uma cor de texto manual (StyleMark), por ficar
+// mais perto do texto no HTML, continua tendo prioridade sobre esse ajuste automático.
+const HighlightMark = Highlight.configure({ multicolor: true }).extend({
+  inclusive: false,
+  // prioridade maior que a do TextStyle (101): o marca-texto passa a envolver o texto por fora,
+  // então uma cor de texto manual (mais perto do texto) sempre continua ganhando do ajuste automático.
+  priority: 102,
+  addAttributes() {
+    return {
+      color: {
+        default: null,
+        parseHTML: (element) =>
+          element.getAttribute('data-color') || getStyleProperty(element, 'background-color') || element.style.backgroundColor,
+        renderHTML: (attributes) => {
+          if (!attributes.color) return {};
+          return { 'data-color': attributes.color, style: `background-color: ${attributes.color}; color: ${corDeContraste(attributes.color)}` };
+        },
+      },
+    };
+  },
+});
 
 export default function NoteWindow({ id }) {
   const [note, setNote] = useState(null);
