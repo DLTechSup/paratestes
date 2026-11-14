@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,3 +22,9 @@ jobs:
         with:
           name: NoteDeck-Setup
           path: release/NoteDeck-Setup-*.exe
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: notedeck-${{ github.run_number }}
+          name: NoteDeck (Windows)
+          files: release/NoteDeck-Setup-*.exe
